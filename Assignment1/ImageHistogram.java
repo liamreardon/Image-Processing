@@ -104,18 +104,6 @@ public class ImageHistogram extends Frame implements ActionListener {
 				// String msg = Arrays.deepToString(intensities);
 				// System.out.println(msg);
 				System.out.println(intensities.length);
-
-				// for ( int y=0, i=0 ; y<height ; y++ )
-				// 	for ( int x=0 ; x<width ; x++, i++ ) {
-				// 		Color clr = new Color(input.getRGB(x, y));
-				// 		red += clr.getRed();
-				// 		green += clr.getGreen();
-				// 		blue += clr.getBlue();
-				// 	}
-				// red /= width * height;
-				// green /= width * height;
-				// blue /= width * height;
-				// plot.setMeanColor(new Color((int)red,(int)green,(int)blue));
 				break;
 			case "Histogram Stretch":
 				System.out.println("Histogram Stretch");
@@ -164,11 +152,9 @@ class PlotCanvas extends Canvas {
 	// the second argument is the integer that represents a color 
 	// (red = 0, blue = 1, green = 2)
 	public void showHistogram(int[][] arr){
-		LineSegment[][] segments = new LineSegment[256][3];
-		
 		for(int x = 0; x<arr.length; x++){
 			for(int y = 0; y<arr[0].length; y++){
-				segments[x][y] = new LineSegment(colors[y], x, 0, x, arr[x][y]);
+				segments[x][y] = new LineSegment(colors[y], x, 0, x, arr[x][y]/3);
 			}
 		}
 
@@ -182,19 +168,16 @@ class PlotCanvas extends Canvas {
 		int yoffset = (getHeight() - 200) / 2;
 		x_axis.draw(g, xoffset, yoffset, getHeight());
 		y_axis.draw(g, xoffset, yoffset, getHeight());
-		if ( showMean ) {
-			red.draw(g, xoffset, yoffset, getHeight());
-			green.draw(g, xoffset, yoffset, getHeight());
-			blue.draw(g, xoffset, yoffset, getHeight());
-		}
 
-		// if( showHist ){
-		// 	for(int x = 0; x < segments.length; x++){
-		// 		for(int y = 0; y < segments[0].length; y++){
-		// 			segments[x][y].draw(g, xoffset, yoffset, getHeight());
-		// 		}
-		// 	}
-		// }
+
+		// Drawing the histogram
+		if( showHist ){
+			for(int x = 0; x < segments.length; x++){
+				for(int y = 0; y < segments[0].length; y++){
+					segments[x][y].draw(g, xoffset, yoffset, getHeight());
+				}
+			}
+		}
 	}
 }
 
