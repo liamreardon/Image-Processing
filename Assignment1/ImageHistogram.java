@@ -11,11 +11,17 @@ import javax.imageio.*;
 
 // Main class
 public class ImageHistogram extends Frame implements ActionListener {
+	// Mapping of color channel to int
+	int _RED = 0;
+	int _GREEN = 1;
+	int _BLUE = 2;
+
 	BufferedImage input;
 	int width, height;
 	TextField texRad, texThres;
 	ImageCanvas source, target;
 	PlotCanvas plot;
+	int i = 0, j = 0;
 	// Constructor
 	public ImageHistogram(String name) {
 		super("Image Histogram");
@@ -28,6 +34,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 		}
 		width = input.getWidth();
 		height = input.getHeight();
+
 		// prepare the panel for image canvas.
 		Panel main = new Panel();
 		source = new ImageCanvas(input);
@@ -61,29 +68,68 @@ public class ImageHistogram extends Frame implements ActionListener {
 		setSize(width*2+400, height+100);
 		setVisible(true);
 	}
+
+
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
 		}
 	}
+
+
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
-		// example -- compute the average color for the image
-		if ( ((Button)e.getSource()).getLabel().equals("Display Histogram") ) {
-			float red=0, green=0, blue=0;
-			for ( int y=0, i=0 ; y<height ; y++ )
-				for ( int x=0 ; x<width ; x++, i++ ) {
-					Color clr = new Color(input.getRGB(x, y));
-					red += clr.getRed();
-					green += clr.getGreen();
-					blue += clr.getBlue();
+		String label = ((Button)e.getSource()).getLabel();
+		int[][] intensities = new int[256][3];
+
+		switch(label){
+			case "Display Histogram":
+				int red=0, green=0, blue=0;
+
+				// Generating the image histogram
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						int pixel = input.getRGB(x,y);
+						red = (pixel >> 16) & 0xff;
+						green = (pixel >> 8) & 0xff;
+						blue = (pixel) & 0xff;
+
+						intensities[red][_RED]++;
+						intensities[green][_GREEN]++;
+						intensities[blue][_BLUE]++;
+
+						plot.showHistogram(intensities);
+					}
 				}
-			red /= width * height;
-			green /= width * height;
-			blue /= width * height;
-			plot.setMeanColor(new Color((int)red,(int)green,(int)blue));
+				// String msg = Arrays.deepToString(intensities);
+				// System.out.println(msg);
+				System.out.println(intensities.length);
+
+				// for ( int y=0, i=0 ; y<height ; y++ )
+				// 	for ( int x=0 ; x<width ; x++, i++ ) {
+				// 		Color clr = new Color(input.getRGB(x, y));
+				// 		red += clr.getRed();
+				// 		green += clr.getGreen();
+				// 		blue += clr.getBlue();
+				// 	}
+				// red /= width * height;
+				// green /= width * height;
+				// blue /= width * height;
+				// plot.setMeanColor(new Color((int)red,(int)green,(int)blue));
+				break;
+			case "Histogram Stretch":
+				System.out.println("Histogram Stretch");
+				break;
+			case "Aggressive Stretch":
+				System.out.println("Aggerssive Stretch");
+				break;
+			case "Histogram Equalization":
+				System.out.println("Histogram Equalization");
+				break;
 		}
 	}
+
+
 	public static void main(String[] args) {
 		new ImageHistogram(args.length==1 ? args[0] : "baboon.png");
 	}
@@ -94,7 +140,10 @@ class PlotCanvas extends Canvas {
 	// lines for plotting axes and mean color locations
 	LineSegment x_axis, y_axis;
 	LineSegment red, green, blue;
+	LineSegment[][] segments = new LineSegment[256][3];
+	Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
 	boolean showMean = false;
+	boolean showHist = false;
 
 	public PlotCanvas() {
 		x_axis = new LineSegment(Color.BLACK, -10, 0, 256+10, 0);
@@ -106,6 +155,24 @@ class PlotCanvas extends Canvas {
 		green = new LineSegment(Color.GREEN, clr.getGreen(), 0, clr.getGreen(), 100);
 		blue = new LineSegment(Color.BLUE, clr.getBlue(), 0, clr.getBlue(), 100);
 		showMean = true;
+		repaint();
+	}
+
+	// Function to show image histogram
+	//
+	// arr should be structured so the first argument is the color intensity and
+	// the second argument is the integer that represents a color 
+	// (red = 0, blue = 1, green = 2)
+	public void showHistogram(int[][] arr){
+		LineSegment[][] segments = new LineSegment[256][3];
+		
+		for(int x = 0; x<arr.length; x++){
+			for(int y = 0; y<arr[0].length; y++){
+				segments[x][y] = new LineSegment(colors[y], x, 0, x, arr[x][y]);
+			}
+		}
+
+		showHist = true;
 		repaint();
 	}
 	// redraw the canvas
@@ -120,6 +187,14 @@ class PlotCanvas extends Canvas {
 			green.draw(g, xoffset, yoffset, getHeight());
 			blue.draw(g, xoffset, yoffset, getHeight());
 		}
+
+		// if( showHist ){
+		// 	for(int x = 0; x < segments.length; x++){
+		// 		for(int y = 0; y < segments[0].length; y++){
+		// 			segments[x][y].draw(g, xoffset, yoffset, getHeight());
+		// 		}
+		// 	}
+		// }
 	}
 }
 
