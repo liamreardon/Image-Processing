@@ -81,24 +81,26 @@ public class ImageHistogram extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		String label = ((Button)e.getSource()).getLabel();
 		int[][] intensities = new int[256][3];
+                int red=0, green=0, blue=0;
+                double min = 1, max = 0;
+               
 
 		switch(label){
 			case "Display Histogram":
-				int red=0, green=0, blue=0;
 
 				// Generating the image histogram
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
-						int pixel = input.getRGB(x,y);
-						red = (pixel >> 16) & 0xff;
-						green = (pixel >> 8) & 0xff;
-						blue = (pixel) & 0xff;
+                                            int pixel = input.getRGB(x,y);
+                                            red = (pixel >> 16) & 0xff;
+                                            green = (pixel >> 8) & 0xff;
+                                            blue = (pixel) & 0xff;
 
-						intensities[red][_RED]++;
-						intensities[green][_GREEN]++;
-						intensities[blue][_BLUE]++;
+                                            intensities[red][_RED]++;
+                                            intensities[green][_GREEN]++;
+                                            intensities[blue][_BLUE]++;
 
-						plot.showHistogram(intensities);
+                                            plot.showHistogram(intensities);
 					}
 				}
 				// String msg = Arrays.deepToString(intensities);
@@ -106,7 +108,54 @@ public class ImageHistogram extends Frame implements ActionListener {
 				System.out.println(intensities.length);
 				break;
 			case "Histogram Stretch":
+                            
 				System.out.println("Histogram Stretch");
+
+
+                // convert each pixel from RGB to HSB and find min & max brightness values                                       
+                for ( int y = 0; y < height; y++ ) {
+                    for ( int x = 0; x < width; x++) {
+                        Color clr = new Color(input.getRGB(x, y));
+                        
+                        float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+                        
+                        if(hsb[2] > max){
+                            max = hsb[2];
+                        }
+                        if(hsb[2] < min){
+                            min = hsb[2];
+                        }
+                    }
+                }
+
+//              System.out.println(max);
+//              System.out.println(min);
+                               
+
+                // convert each pixel from RGB to HSB, apply min and max values to HSB to stretch
+                // brightness, convert back to RGB and plot
+                for ( int y=0; y<height ; y++ ) {
+                    for ( int x=0 ; x<width ; x++) {
+
+                        Color clr = new Color(input.getRGB(x, y));
+                        float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+                        
+                        hsb[2] = (float) ((hsb[2]-min)/(max-min));
+                        
+                        int newclr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+                        
+                        red = (newclr >> 16) & 0xff;
+                        green = (newclr >> 8) & 0xff;
+                        blue = (newclr) & 0xff;
+
+                        intensities[red][_RED]++;
+                        intensities[green][_GREEN]++;
+                        intensities[blue][_BLUE]++;
+
+                        plot.showHistogram(intensities);
+                    }
+                }
+
 				break;
 			case "Aggressive Stretch":
 				System.out.println("Aggerssive Stretch");
@@ -197,3 +246,4 @@ class LineSegment {
 		g.drawLine(x0+xoffset, height-y0-yoffset, x1+xoffset, height-y1-yoffset);
 	}
 }
+
