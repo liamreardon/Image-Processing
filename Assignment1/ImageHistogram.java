@@ -105,7 +105,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 				}
 				// String msg = Arrays.deepToString(intensities);
 				// System.out.println(msg);
-				System.out.println(intensities.length);
+				// System.out.println(intensities.length);
 				break;
 			case "Histogram Stretch":
                             
@@ -177,7 +177,7 @@ class PlotCanvas extends Canvas {
 	// lines for plotting axes and mean color locations
 	LineSegment x_axis, y_axis;
 	LineSegment red, green, blue;
-	LineSegment[][] segments = new LineSegment[256][3];
+	LineSegment[][] segments = new LineSegment[255][3];
 	Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
 	boolean showMean = false;
 	boolean showHist = false;
@@ -201,9 +201,9 @@ class PlotCanvas extends Canvas {
 	// the second argument is the integer that represents a color 
 	// (red = 0, blue = 1, green = 2)
 	public void showHistogram(int[][] arr){
-		for(int x = 0; x<arr.length; x++){
+		for(int x = 0; x<arr.length-1; x++){
 			for(int y = 0; y<arr[0].length; y++){
-				segments[x][y] = new LineSegment(colors[y], x, 0, x, arr[x][y]/3);
+				segments[x][y] = new LineSegment(colors[y], x, arr[x][y]/3, x+1, arr[x+1][y]/3);
 			}
 		}
 
