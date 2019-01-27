@@ -164,6 +164,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 				String cutoff = texThres.getText();
 
+				// if cutoff fraction is empty, assign default cmin/cmax v
 				if (cutoff.isEmpty()) {
 
 					cmin = 0;
@@ -171,6 +172,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 				}
 
+				// else convert cutoff string to double and divide to get values between 0 and 1
 				else {
 
 					cmin = Double.parseDouble(cutoff);
@@ -179,8 +181,9 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 				}
 
-				
-				
+
+				// convert each pixel from RGB to HSB and find min & max brightness values, compare with
+				// cmin/cmax to aggressively stretch histogram
 				for (int y = 0; y < height; y++ ) {
 					for (int x = 0; x < width; x++ ) {
 						
@@ -192,19 +195,22 @@ public class ImageHistogram extends Frame implements ActionListener {
 							if(hsb[2] < cmax) {
 
 								max = hsb[2];
+
 							}
 						}
 
 						if (hsb[2] < min) {
 
 							if (hsb[2] > cmin) {
+
 								min = hsb[2];
+
 							}
 						}
 					}
 				}
 
-				
+				// loop to ensure all brightness pixels are between 0 and 1 to avoid over/underexposure
 				for (int y = 0; y < height; y++) {
 					for (int x = 0; x < width; x++) {
 						
@@ -217,11 +223,13 @@ public class ImageHistogram extends Frame implements ActionListener {
 						if(hsb[2] > 1) {
 
 							hsb[2] = 1;
+
 						}
 
 						if(hsb[2] < 0) {
 
 							hsb[2] = 0;
+
 						}
 
 						int nClr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
