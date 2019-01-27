@@ -81,10 +81,11 @@ public class ImageHistogram extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		String label = ((Button)e.getSource()).getLabel();
 		int[][] intensities = new int[256][3];
-				int red=0, green=0, blue=0;
-				double min = 1, max = 0;
-			   
 
+        int red = 0, green = 0, blue = 0;
+        double min = 1, max = 0;
+        double cmin, cmax;
+               
 		switch(label){
 			case "Display Histogram":
 
@@ -111,54 +112,133 @@ public class ImageHistogram extends Frame implements ActionListener {
 							
 				System.out.println("Histogram Stretch");
 
+                // convert each pixel from RGB to HSB and find min & max brightness values                                       
+                for ( int y = 0; y < height; y++ ) {
+                    for ( int x = 0; x < width; x++) {
+                        Color clr = new Color(input.getRGB(x, y));
+                        
+                        float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+                        
+                        if(hsb[2] > max) {
+                            max = hsb[2];
+                        }
 
-				// convert each pixel from RGB to HSB and find min & max brightness values                                       
-				for ( int y = 0; y < height; y++ ) {
-					for ( int x = 0; x < width; x++) {
-						Color clr = new Color(input.getRGB(x, y));
-						
-						float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
-						
-						if(hsb[2] > max){
-							max = hsb[2];
-						}
-						if(hsb[2] < min){
-							min = hsb[2];
-						}
-					}
-				}
+                        if(hsb[2] < min) {
+                            min = hsb[2];
+                        }
+                    }
+                }
 
 //              System.out.println(max);
 //              System.out.println(min);
-							   
+                               
 
-				// convert each pixel from RGB to HSB, apply min and max values to HSB to stretch
-				// brightness, convert back to RGB and plot
-				for ( int y=0; y<height; y++ ) {
-					for ( int x=0; x<width; x++) {
+                // convert each pixel from RGB to HSB, apply min and max values to HSB to stretch
+                // brightness, convert back to RGB and plot
+                for (int y = 0; y < height; y++ ) {
+                    for (int x = 0; x < width; x++) {
 
-						Color clr = new Color(input.getRGB(x, y));
-						float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
-						
-						hsb[2] = (float) ((hsb[2] - min) / (max - min));
-						
-						int nClr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
-						
-						red = (nClr >> 16) & 0xff;
-						green = (nClr >> 8) & 0xff;
-						blue = (nClr) & 0xff;
+                        Color clr = new Color(input.getRGB(x, y));
+                        float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+                        
+                        hsb[2] = (float) ((hsb[2] - min) / (max - min));
+                        
+                        int nClr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+                        
+                        red = (nClr >> 16) & 0xff;
+                        green = (nClr >> 8) & 0xff;
+                        blue = (nClr) & 0xff;
 
-						intensities[red][_RED]++;
-						intensities[green][_GREEN]++;
-						intensities[blue][_BLUE]++;
+                        intensities[red][_RED]++;
+                        intensities[green][_GREEN]++;
+                        intensities[blue][_BLUE]++;
 
-						plot.showHistogram(intensities);
-					}
-				}
+                        plot.showHistogram(intensities);
+                    }
+                }
 
 				break;
 			case "Aggressive Stretch":
-				System.out.println("Aggerssive Stretch");
+
+				System.out.println("Aggressive Stretch");
+
+				String cutoff = texThres.getText();
+
+				if (cutoff.isEmpty()) {
+
+					cmin = 0;
+					cmax = 1;
+
+				}
+
+				else {
+
+					cmin = Double.parseDouble(cutoff);
+					cmin = cmin / 100;
+					cmax = 1 - cmin;
+
+				}
+
+				
+				
+				for (int y = 0; y < height; y++ ) {
+					for (int x = 0; x < width; x++ ) {
+						
+						Color clr = new Color(input.getRGB(x, y));
+						float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+
+						if (hsb[2] > max) {
+
+							if(hsb[2] < cmax) {
+
+								max = hsb[2];
+							}
+						}
+
+						if (hsb[2] < min) {
+
+							if (hsb[2] > cmin) {
+								min = hsb[2];
+							}
+						}
+					}
+				}
+
+				
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < width; x++) {
+						
+						Color clr = new Color(input.getRGB(x, y));
+
+						float[] hsb = Color.RGBtoHSB(clr.getRed(), clr.getGreen(), clr.getBlue(), null);
+
+						hsb[2] = (float) ((hsb[2] - min)/(max - min));
+
+						if(hsb[2] > 1) {
+
+							hsb[2] = 1;
+						}
+
+						if(hsb[2] < 0) {
+
+							hsb[2] = 0;
+						}
+
+						int nClr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+
+						red = (nClr >> 16) & 0xff;
+                        green = (nClr >> 8) & 0xff;
+                        blue = (nClr) & 0xff;
+
+                        intensities[red][_RED]++;
+                        intensities[green][_GREEN]++;
+                        intensities[blue][_BLUE]++;
+
+                        plot.showHistogram(intensities);
+				
+					}
+				}
+						
 				break;
 			case "Histogram Equalization":
 				System.out.println("Histogram Equalization");
