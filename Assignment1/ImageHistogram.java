@@ -81,6 +81,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		String label = ((Button)e.getSource()).getLabel();
 		int[][] intensities = new int[256][3];
+
         int red = 0, green = 0, blue = 0;
         double min = 1, max = 0;
         double cmin, cmax;
@@ -89,18 +90,18 @@ public class ImageHistogram extends Frame implements ActionListener {
 			case "Display Histogram":
 
 				// Generating the image histogram
-				for(int y = 0; y < height; y++) {
-					for(int x = 0; x < width; x++) {
-                        int pixel = input.getRGB(x,y);
-                        red = (pixel >> 16) & 0xff;
-                        green = (pixel >> 8) & 0xff;
-                        blue = (pixel) & 0xff;
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						int pixel = input.getRGB(x,y);
+						red = (pixel >> 16) & 0xff;
+						green = (pixel >> 8) & 0xff;
+						blue = (pixel) & 0xff;
 
-                        intensities[red][_RED]++;
-                        intensities[green][_GREEN]++;
-                        intensities[blue][_BLUE]++;
+						intensities[red][_RED]++;
+						intensities[green][_GREEN]++;
+						intensities[blue][_BLUE]++;
 
-                        plot.showHistogram(intensities);
+						plot.showHistogram(intensities);
 					}
 				}
 				// String msg = Arrays.deepToString(intensities);
@@ -108,9 +109,8 @@ public class ImageHistogram extends Frame implements ActionListener {
 				// System.out.println(intensities.length);
 				break;
 			case "Histogram Stretch":
-                            
+							
 				System.out.println("Histogram Stretch");
-
 
                 // convert each pixel from RGB to HSB and find min & max brightness values                                       
                 for ( int y = 0; y < height; y++ ) {
@@ -163,7 +163,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 				System.out.println("Aggressive Stretch");
 
 				String cutoff = texThres.getText();
-
+				
 				// if cutoff fraction is empty, assign default cmin/cmax v
 				if (cutoff.isEmpty()) {
 
@@ -181,7 +181,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 				}
 
-
+				
 				// convert each pixel from RGB to HSB and find min & max brightness values, compare with
 				// cmin/cmax to aggressively stretch histogram
 				for (int y = 0; y < height; y++ ) {
@@ -195,20 +195,18 @@ public class ImageHistogram extends Frame implements ActionListener {
 							if(hsb[2] < cmax) {
 
 								max = hsb[2];
-
 							}
 						}
 
 						if (hsb[2] < min) {
 
 							if (hsb[2] > cmin) {
-
 								min = hsb[2];
-
 							}
 						}
 					}
 				}
+
 
 				// loop to ensure all brightness pixels are between 0 and 1 to avoid over/underexposure
 				for (int y = 0; y < height; y++) {
@@ -223,13 +221,11 @@ public class ImageHistogram extends Frame implements ActionListener {
 						if(hsb[2] > 1) {
 
 							hsb[2] = 1;
-
 						}
 
 						if(hsb[2] < 0) {
 
 							hsb[2] = 0;
-
 						}
 
 						int nClr = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
@@ -250,10 +246,61 @@ public class ImageHistogram extends Frame implements ActionListener {
 				break;
 			case "Histogram Equalization":
 				System.out.println("Histogram Equalization");
+
+				// Generating the image histogram
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						int pixel = input.getRGB(x,y);
+						red = (pixel >> 16) & 0xff;
+						green = (pixel >> 8) & 0xff;
+						blue = (pixel) & 0xff;
+
+						intensities[red][_RED]++;
+						intensities[green][_GREEN]++;
+						intensities[blue][_BLUE]++;
+					}
+				}
+
+				float[][] normalized = normalizeRGB(intensities);
+
+				plot.showHistogram(intensities);
 				break;
 		}
 	}
 
+
+	// Function to normalize the rbg values for each pixel
+	// Args:
+	// 	intensities - the array of the original intensities of each pixel
+	//
+	// Returns:
+	// 	the 2D array of normalized values
+	public float[][] normalizeRGB(int[][] intensities){
+		int bins = intensities.length;
+		int channels = intensities[0].length;
+
+		float[][] normalized = new float[bins][channels];
+
+		float maxTotal = -1;
+
+		// Finding the bin that has the highest total value over all channels
+		for(int x = 0; x < bins; x++){
+			float total = 0;
+			for(int y = 0; y < channels; y++){
+				total += intensities[x][y];
+			}
+			if(total > maxTotal){ maxTotal = total; }
+		}
+
+		// Normalizing all bins in each channel based on maxTotal
+		for(int x = 0; x < bins; x++){
+			for(int y = 0; y < channels; y++){
+				normalized[x][y] = (float) intensities[x][y]/maxTotal;
+			}
+		}
+
+		return normalized;
+	}
 
 	public static void main(String[] args) {
 		new ImageHistogram(args.length==1 ? args[0] : "baboon.png");
