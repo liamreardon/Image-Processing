@@ -242,23 +242,45 @@ public class ImageHistogram extends Frame implements ActionListener {
 				break;
 			case "Histogram Equalization":
 				System.out.println("Histogram Equalization");
+				int CHANNELS = 3;
+				double[][][] hsl = new double[height][width][CHANNELS];
+				double r, g, b;
 
-				// Generating the image histogram
+				// converting each pixel in the image from rgb to hsl
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
 						int pixel = input.getRGB(x,y);
-						red = (pixel >> 16) & 0xff;
-						green = (pixel >> 8) & 0xff;
-						blue = (pixel) & 0xff;
 
-						intensities[red][_RED]++;
-						intensities[green][_GREEN]++;
-						intensities[blue][_BLUE]++;
+						// Normalizing the RGB values of each pixel so they are
+						// in the range [0,1]
+						r = (double) ((pixel >> 16) & 0xff) / 255;
+						g = (double) ((pixel >> 8) & 0xff) / 255;
+						b = (double) ((pixel) & 0xff) / 255;
+
+						max = Math.max(Math.max(r, g), b);
+						min = Math.min(Math.min(r, g), b);
+
+						double delta = max-min;
+						double s = -1;
+						double h = -1;
+						double l = (max + min) / 2.0;
+
+						if(min == max){ s = 0; }
+						else if(l <= .5){ s = (max - min) / (2 * l); }
+						else { s = (max - min) / (2 - 2 * l); }
+
+						if(min == max){ h = 0; }
+						else if(max == r){ h = (60 * ((g - b) / delta) + 360) % 360; }
+						else if(max == g){ h = (60 * ((b - r) / delta) + 120) % 360; }
+						else if(max == b){ h = (60 * ((r - g) / delta) + 240) % 360; }
+
+						hsl[y][x][0] = h;
+						hsl[y][x][1] = s;
+						hsl[y][x][2] = l;
 					}
 				}
 
-				float[][] normalized = normalizeRGB(intensities);
-
+				// float[][] normalized = normalizeRGB(intensities);
 				plot.showHistogram(intensities);
 				break;
 		}
