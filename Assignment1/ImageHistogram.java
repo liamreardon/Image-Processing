@@ -246,41 +246,37 @@ public class ImageHistogram extends Frame implements ActionListener {
 				break;
 			case "Histogram Equalization":
 				System.out.println("Histogram Equalization");
-				int CHANNELS = 3;
-				double[][][] hsl = new double[height][width][CHANNELS];
-				double r, g, b;
+				// HSL representation of each pixel in the image
+				HSL[][] hsl_img = new HSL[height][width];
 
-				// converting each pixel in the image from rgb to hsl
+				// Get the RGB values of each pixel and convert to HSL
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
 						int pixel = input.getRGB(x,y);
+						red = (pixel >> 16) & 0xff;
+						green = (pixel >> 8) & 0xff;
+						blue = (pixel) & 0xff;
 
-						// Normalizing the RGB values of each pixel so they are
-						// in the range [0,1]
-						r = (double) ((pixel >> 16) & 0xff) / 255;
-						g = (double) ((pixel >> 8) & 0xff) / 255;
-						b = (double) ((pixel) & 0xff) / 255;
+						hsl_img[y][x] = new HSL(red, green, blue);
+					}
+				}
 
-						max = Math.max(Math.max(r, g), b);
-						min = Math.min(Math.min(r, g), b);
+				int[] lightnessCounts = new int[256];
 
-						double delta = max-min;
-						double s = -1;
-						double h = -1;
-						double l = (max + min) / 2.0;
+				for(int y = 0; y < hsl_img.length; y++){
+					for(int x = 0; x < hsl_img[0].length; x++){
+						lightnessCounts[(int) Math.round(hsl_img[y][x].lightness* 255)]++;
+					}
+				}
 
-						if(min == max){ s = 0; }
-						else if(l <= .5){ s = (max - min) / (2 * l); }
-						else { s = (max - min) / (2 - 2 * l); }
+				int numPixels = width * height;
 
-						if(min == max){ h = 0; }
-						else if(max == r){ h = (60 * ((g - b) / delta) + 360) % 360; }
-						else if(max == g){ h = (60 * ((b - r) / delta) + 120) % 360; }
-						else if(max == b){ h = (60 * ((r - g) / delta) + 240) % 360; }
+				double[] equalizedCounts = new double[256];
 
-						hsl[y][x][0] = h;
-						hsl[y][x][1] = s;
-						hsl[y][x][2] = l;
+				for(int x = 0; x < lightnessCounts.length; x++){
+					equalizedCounts[x] = (double) lightnessCounts[x] / numPixels;
+					if(x > 0){
+						equalizedCounts[x] += equalizedCounts[x-1];
 					}
 				}
 
