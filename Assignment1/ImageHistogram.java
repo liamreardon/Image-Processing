@@ -1,5 +1,6 @@
-// Skeletal program for the "Image Histogram" assignment
-// Written by:  Minglun Gong
+// COMP3301 Assignment #1
+// Written by Eric Roy Elli & Liam Reardon
+// Based on the skeletal program written by Minglun Gong
 
 import java.util.*;
 import java.awt.*;
@@ -262,6 +263,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 					}
 				}
 
+				// Array to count the number of pixel having each intensity value
 				int[] lightnessCounts = new int[256];
 
 				for(int y = 0; y < hsl_img.length; y++){
@@ -271,7 +273,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 				}
 
 				int numPixels = width * height;
-				double[] cdf = new double[256];
+				double[] cdf = new double[256];  //Cumulative Distribution array
 
 				for(int x = 0; x < lightnessCounts.length; x++){
 					cdf[x] = (double) lightnessCounts[x] / numPixels;
@@ -280,13 +282,15 @@ public class ImageHistogram extends Frame implements ActionListener {
 					}
 				}
 
+
+				// Applying the transform function 
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
 						hsl_img[y][x].lightness = (int) Math.round(cdf[hsl_img[y][x].lightness] * 255);
 					}
 				}
 
-				// Coverting hsl_img to rgb
+				// Coverting hsl_img back to rgb
 				Color[][] rgb_img = new Color[height][width];
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
@@ -297,44 +301,9 @@ public class ImageHistogram extends Frame implements ActionListener {
 					}
 				}
 
-				// float[][] normalized = normalizeRGB(intensities);
 				plot.showHistogram(intensities);
 				break;
 		}
-	}
-
-
-	// Function to normalize the rbg values for each pixel
-	// Args:
-	// 	intensities - the array of the original intensities of each pixel
-	//
-	// Returns:
-	// 	the 2D array of normalized values
-	public float[][] normalizeRGB(int[][] intensities){
-		int bins = intensities.length;
-		int channels = intensities[0].length;
-
-		float[][] normalized = new float[bins][channels];
-
-		float maxTotal = -1;
-
-		// Finding the bin that has the highest total value over all channels
-		for(int x = 0; x < bins; x++){
-			float total = 0;
-			for(int y = 0; y < channels; y++){
-				total += intensities[x][y];
-			}
-			if(total > maxTotal){ maxTotal = total; }
-		}
-
-		// Normalizing all bins in each channel based on maxTotal
-		for(int x = 0; x < bins; x++){
-			for(int y = 0; y < channels; y++){
-				normalized[x][y] = (float) intensities[x][y]/maxTotal;
-			}
-		}
-
-		return normalized;
 	}
 
 	public static void main(String[] args) {
