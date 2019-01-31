@@ -101,9 +101,10 @@ public class ImageHistogram extends Frame implements ActionListener {
 						intensities[green][_GREEN]++;
 						intensities[blue][_BLUE]++;
 
-						plot.showHistogram(intensities);
 					}
 				}
+
+				plot.showHistogram(intensities);
 				// String msg = Arrays.deepToString(intensities);
 				// System.out.println(msg);
 				// System.out.println(intensities.length);
@@ -153,9 +154,10 @@ public class ImageHistogram extends Frame implements ActionListener {
                         intensities[green][_GREEN]++;
                         intensities[blue][_BLUE]++;
 
-                        plot.showHistogram(intensities);
                     }
                 }
+
+                plot.showHistogram(intensities);
 
 				break;
 			case "Aggressive Stretch":
@@ -236,12 +238,11 @@ public class ImageHistogram extends Frame implements ActionListener {
 
                         intensities[red][_RED]++;
                         intensities[green][_GREEN]++;
-                        intensities[blue][_BLUE]++;
-
-                        plot.showHistogram(intensities);
-				
+                        intensities[blue][_BLUE]++;				
 					}
 				}
+				
+                plot.showHistogram(intensities);
 						
 				break;
 			case "Histogram Equalization":
@@ -370,9 +371,13 @@ class PlotCanvas extends Canvas {
 	// the second argument is the integer that represents a color 
 	// (red = 0, blue = 1, green = 2)
 	public void showHistogram(int[][] arr){
+		double scalingFactor = getScalingFactor(arr);
+		arr = scaleIntensities(arr, scalingFactor);
+
+		// Creating line segments
 		for(int x = 0; x<arr.length-1; x++){
 			for(int y = 0; y<arr[0].length; y++){
-				segments[x][y] = new LineSegment(colors[y], x, arr[x][y]/3, x+1, arr[x+1][y]/3);
+				segments[x][y] = new LineSegment(colors[y], x, arr[x][y], x+1, arr[x+1][y]);
 			}
 		}
 
@@ -396,6 +401,33 @@ class PlotCanvas extends Canvas {
 				}
 			}
 		}
+	}
+
+	// Scaling factor to fit histogram within bounds
+	private double getScalingFactor(int[][] arr){
+		double y_max = 200; // max value in y-axis is 200
+		int max_count = -1;
+
+		//Finding the maximum intensity count over all channels
+		for(int channel = 0; channel < 3; channel++){
+			for(int bin = 0; bin < 256; bin++){
+				if(arr[bin][channel] > max_count){
+					max_count = arr[bin][channel];
+				}
+			}
+		}
+
+		return y_max / max_count;
+	}
+ 	
+ 	// Applies the scaling factor to each element in arr
+	private int[][] scaleIntensities(int[][] arr, double scalingFactor){
+		for(int bin = 0; bin < 256; bin++){
+			for(int channel = 0; channel < 3; channel++){
+				arr[bin][channel] = (int) Math.round(arr[bin][channel] * scalingFactor);
+			}
+		}
+		return arr;
 	}
 }
 
