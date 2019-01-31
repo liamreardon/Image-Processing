@@ -285,7 +285,16 @@ public class ImageHistogram extends Frame implements ActionListener {
 					}
 				}
 
-
+				// Coverting hsl_img to rgb
+				Color[][] rgb_img = new Color[height][width];
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						rgb_img[y][x] = hsl_img[y][x].hsl2rgb();
+						intensities[rgb_img[y][x].getRed()][_RED]++;
+						intensities[rgb_img[y][x].getGreen()][_GREEN]++;
+						intensities[rgb_img[y][x].getBlue()][_BLUE]++;
+					}
+				}
 
 				// float[][] normalized = normalizeRGB(intensities);
 				plot.showHistogram(intensities);
