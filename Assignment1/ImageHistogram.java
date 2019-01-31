@@ -265,18 +265,34 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 				for(int y = 0; y < hsl_img.length; y++){
 					for(int x = 0; x < hsl_img[0].length; x++){
-						lightnessCounts[(int) Math.round(hsl_img[y][x].lightness* 255)]++;
+						lightnessCounts[hsl_img[y][x].lightness]++;
 					}
 				}
 
 				int numPixels = width * height;
-
-				double[] equalizedCounts = new double[256];
+				double[] cdf = new double[256];
 
 				for(int x = 0; x < lightnessCounts.length; x++){
-					equalizedCounts[x] = (double) lightnessCounts[x] / numPixels;
+					cdf[x] = (double) lightnessCounts[x] / numPixels;
 					if(x > 0){
-						equalizedCounts[x] += equalizedCounts[x-1];
+						cdf[x] += cdf[x-1];
+					}
+				}
+
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						hsl_img[y][x].lightness = (int) Math.round(cdf[hsl_img[y][x].lightness] * 255);
+					}
+				}
+
+				// Coverting hsl_img to rgb
+				Color[][] rgb_img = new Color[height][width];
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						rgb_img[y][x] = hsl_img[y][x].hsl2rgb();
+						intensities[rgb_img[y][x].getRed()][_RED]++;
+						intensities[rgb_img[y][x].getGreen()][_GREEN]++;
+						intensities[rgb_img[y][x].getBlue()][_BLUE]++;
 					}
 				}
 
