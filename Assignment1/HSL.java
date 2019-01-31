@@ -45,15 +45,14 @@ public class HSL {
 
     // Function to convert from hsl to rgb
     public Color hsl2rgb(){
-        float h = (float) this.hue % 360;
+        float h = (float) this.hue / 360f;
         float s = (float) this.saturation;
-        float l = (float) this.lightness / 255;
-        h /= 360d;
+        float l = (float) this.lightness / 255f;
 
         float q = 0;
 
         if(l < 0.5){
-            q = l * (l + s);
+            q = l * (1 + s);
         }else{
             q = (l + s) - (l * s);
         }
@@ -63,6 +62,10 @@ public class HSL {
         float r = Math.max(0, HueToRGB(p, q, h + (1.0f / 3.0f)));
         float g = Math.max(0, HueToRGB(p, q, h));
         float b = Math.max(0, HueToRGB(p, q, h - (1.0f / 3.0f)));
+
+        r = Math.min(r, 1.0f);
+        g = Math.min(g, 1.0f);
+        b = Math.min(b, 1.0f);
 
         return new Color(r, g, b);
     }
