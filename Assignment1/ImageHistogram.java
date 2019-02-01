@@ -184,6 +184,16 @@ public class ImageHistogram extends Frame implements ActionListener {
 				else {
 
 					cmin = Double.parseDouble(cutoff);
+
+					if (cmin > 100) {
+						cmin = 100;
+					}
+
+					if (cmin < 0) {
+						cmin = 0;
+					}
+					
+					System.out.println(cmin);
 					cmin = cmin / 100;
 					cmax = 1 - cmin;
 
@@ -302,7 +312,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 				Color[][] rgb_img = new Color[height][width];
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
-						
+
 						rgb_img[y][x] = hsl_img[y][x].hsl2rgb();
 						intensities[rgb_img[y][x].getRed()][_RED]++;
 						intensities[rgb_img[y][x].getGreen()][_GREEN]++;
