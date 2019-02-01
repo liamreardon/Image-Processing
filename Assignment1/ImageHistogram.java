@@ -80,6 +80,8 @@ public class ImageHistogram extends Frame implements ActionListener {
 
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
+
+		target.resetImage(input);
 		String label = ((Button)e.getSource()).getLabel();
 		int[][] intensities = new int[256][3];
 
@@ -151,6 +153,8 @@ public class ImageHistogram extends Frame implements ActionListener {
                         green = (nClr >> 8) & 0xff;
                         blue = (nClr) & 0xff;
 
+                        target.image.setRGB(x, y, nClr);
+
                         intensities[red][_RED]++;
                         intensities[green][_GREEN]++;
                         intensities[blue][_BLUE]++;
@@ -159,6 +163,7 @@ public class ImageHistogram extends Frame implements ActionListener {
                 }
 
                 plot.showHistogram(intensities);
+                target.repaint();
 
 				break;
 			case "Aggressive Stretch":
@@ -237,6 +242,8 @@ public class ImageHistogram extends Frame implements ActionListener {
                         green = (nClr >> 8) & 0xff;
                         blue = (nClr) & 0xff;
 
+                        target.image.setRGB(x, y, nClr);
+
                         intensities[red][_RED]++;
                         intensities[green][_GREEN]++;
                         intensities[blue][_BLUE]++;				
@@ -244,6 +251,7 @@ public class ImageHistogram extends Frame implements ActionListener {
 				}
 				
                 plot.showHistogram(intensities);
+                target.repaint();
 						
 				break;
 			case "Histogram Equalization":
@@ -294,14 +302,22 @@ public class ImageHistogram extends Frame implements ActionListener {
 				Color[][] rgb_img = new Color[height][width];
 				for(int y = 0; y < height; y++){
 					for(int x = 0; x < width; x++){
+						
 						rgb_img[y][x] = hsl_img[y][x].hsl2rgb();
 						intensities[rgb_img[y][x].getRed()][_RED]++;
 						intensities[rgb_img[y][x].getGreen()][_GREEN]++;
 						intensities[rgb_img[y][x].getBlue()][_BLUE]++;
+
+						Color nClr = new Color(rgb_img[y][x].getRed(), rgb_img[y][x].getGreen(), rgb_img[y][x].getBlue());
+						target.image.setRGB(x, y, nClr.getRGB());
+
 					}
+
+
 				}
 
 				plot.showHistogram(intensities);
+				target.repaint();
 				break;
 		}
 	}
@@ -352,6 +368,7 @@ class PlotCanvas extends Canvas {
 
 		showHist = true;
 		repaint();
+
 	}
 	// redraw the canvas
 	public void paint(Graphics g) {
