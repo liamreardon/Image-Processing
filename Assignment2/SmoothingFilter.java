@@ -131,20 +131,20 @@ public class SmoothingFilter extends Frame implements ActionListener {
         break;
         
         case "5x5 Gaussian":
-          String inputSigma = texSigma.getText();
-          double sigma = 0;
+			String inputSigma = texSigma.getText();
+			double sigma = 0;
 
-          if(inputSigma.isEmpty()){
-            sigma = 1f;
-          } else{
-            sigma = Double.parseDouble(inputSigma);
-          }
-        
-          int kernelSize = 5;
+			if(inputSigma.isEmpty()){
+				sigma = 1f;
+			} else{
+				sigma = Double.parseDouble(inputSigma);
+			}
 
-          double[][] kernel = getGaussianKernel(sigma, kernelSize);
-        
-				  break;
+			int kernelSize = 5;
+
+			double[][] kernel = getGaussianKernel(sigma, kernelSize);
+
+			break;
 		}
 		
 	}
