@@ -105,31 +105,46 @@ public class SmoothingFilter extends Frame implements ActionListener {
 				for (int u = 0; u < height; u++) {
 					for (int v = 0; v < width; v++) {
 			             
-						for (int j = 0; j <= 2; j++) {
+						for (int j = -2; j <= 2; j++) {
                             for (int i = -2; i <= 2; i++) {
-                                if((u + (j) >= -2 && v + (i) >= 0 && u + (j) < width && v + (i) < height)) {
-                                    int pixel = inputImage[u + j][v + i];
-                                    //System.out.println(pixel);
+                                
 
-                                    int rr = (pixel >> 16) & 0xff;
-                                    int rg = (pixel >> 8) & 0xff;
-                                    int rb = pixel & 0xff;
+                                int cHeight = u + j;
+                                int cWidth = v + i;
 
-                                    red += rr;
-                                    green += rg;
-                                    blue += rb;
-        
+                                // System.out.println(cHeight);
+                                // System.out.println(cWidth);
 
-                                }
+                                if(cHeight < 0) {
+									cHeight = 0;
+								}
+
+								if (cHeight >= height) {
+									cHeight = height - 1;
+								}
+
+								if (cWidth < 0) {
+									cWidth = 0;
+								}
+
+								if(cWidth >= width) {
+									cWidth = width - 1;
+								}
+
+                            
+								Color nClr = new Color(source.image.getRGB(cWidth, cHeight));
+                                red += nClr.getRed();
+                                green += nClr.getGreen();
+                                blue += nClr.getBlue();
+
+                                
                             }
                         }
                         
                         red /= 25; green /= 25; blue /= 25;
-                        int newPixel = (red<<16)|(green<<8)|blue;
-                        //System.out.println(newPixel);
+                        int newPixel = (red << 16) | (green << 8) | blue;
 
                         target.image.setRGB(v, u, newPixel);
-
 
 					}
 				}
