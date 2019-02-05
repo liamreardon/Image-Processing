@@ -89,17 +89,67 @@ public class SmoothingFilter extends Frame implements ActionListener {
 				source.repaint();
 				break;
 
-			case: "5x5 mean":
-				int inputImage[height][width];
-
-
+			case "5x5 mean":
 				break;
 
+			case "5x5 Gaussian":
+				String inputSigma = texSigma.getText();
+				double sigma = 0;
+	
+				if(inputSigma.isEmpty()){
+					sigma = 1f;
+				} else{
+					sigma = Double.parseDouble(inputSigma);
+				}
 
+				int kernelSize = 5;
 
+				double[][] kernel = getGaussianKernel(sigma, kernelSize);
+
+				break;
 		}
 		
 	}
+
+
+	/*
+		Function to calculate a normalized gaussian kernel of a given size
+
+		@param	sigma  			the standard deviation for gaussian
+		@param	kernelSize		the side length of the kernel
+
+		@return 				the normalized gaussian kernel
+	*/
+	public double[][] getGaussianKernel(double sigma, int kernelSize){
+		double[][] kernel = new double[kernelSize][kernelSize];
+
+		double euler = 1f / (2 * Math.PI * sigma * sigma);
+		int kernelRadius = kernelSize / 2;
+		double exponent = 0;
+		double total = 0;
+
+		// Calculating kernel values and the normalizing factor
+		for(int y = -kernelRadius; y <= kernelRadius; y++){
+			for(int x = -kernelRadius; x <= kernelRadius; x++){
+				exponent = ((y * y) + (x * x)) / (2 * sigma * sigma);
+
+				kernel[y + kernelRadius][x + kernelRadius] = 
+					euler * Math.exp(exponent);
+
+				total += kernel[y + kernelRadius][x + kernelRadius];
+			}
+		}
+
+		// Normalizing the kernel
+		for(int y = 0; y < kernel.length; y++){
+			for(int x = 0; x < kernel[0].length; x++){
+				kernel[y][x] /= total;
+			}
+		}
+		return kernel;
+	}
+
+
 	public static void main(String[] args) {
 		new SmoothingFilter(args.length==1 ? args[0] : "baboon.png");
 	}
