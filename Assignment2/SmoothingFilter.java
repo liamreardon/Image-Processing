@@ -65,22 +65,40 @@ public class SmoothingFilter extends Frame implements ActionListener {
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
 		// example -- add random noise
-		if ( ((Button)e.getSource()).getLabel().equals("Add noise") ) {
-			Random rand = new Random();
-			int dev = 64;
-			for ( int y=0, i=0 ; y<height ; y++ )
-				for ( int x=0 ; x<width ; x++, i++ ) {
-					Color clr = new Color(source.image.getRGB(x, y));
-					int red = clr.getRed() + (int)(rand.nextGaussian() * dev);
-					int green = clr.getGreen() + (int)(rand.nextGaussian() * dev);
-					int blue = clr.getBlue() + (int)(rand.nextGaussian() * dev);
-					red = red < 0 ? 0 : red > 255 ? 255 : red;
-					green = green < 0 ? 0 : green > 255 ? 255 : green;
-					blue = blue < 0 ? 0 : blue > 255 ? 255 : blue;
-					source.image.setRGB(x, y, (new Color(red, green, blue)).getRGB());
-				}
-			source.repaint();
+
+		String label = ((Button)e.getSource()).getLabel();
+
+		switch (label) {
+
+			case "Add noise":
+
+				Random rand = new Random();
+				int dev = 64;
+				for ( int y=0, i=0; y<height; y++ )
+					for ( int x=0 ; x<width ; x++, i++ ) {
+						Color clr = new Color(source.image.getRGB(x, y));
+						int red = clr.getRed() + (int)(rand.nextGaussian() * dev);
+						int green = clr.getGreen() + (int)(rand.nextGaussian() * dev);
+						int blue = clr.getBlue() + (int)(rand.nextGaussian() * dev);
+						red = red < 0 ? 0 : red > 255 ? 255 : red;
+						green = green < 0 ? 0 : green > 255 ? 255 : green;
+						blue = blue < 0 ? 0 : blue > 255 ? 255 : blue;
+						source.image.setRGB(x, y, (new Color(red, green, blue)).getRGB());
+					}
+
+				source.repaint();
+				break;
+
+			case: "5x5 mean":
+				int inputImage[height][width];
+
+
+				break;
+
+
+
 		}
+		
 	}
 	public static void main(String[] args) {
 		new SmoothingFilter(args.length==1 ? args[0] : "baboon.png");
