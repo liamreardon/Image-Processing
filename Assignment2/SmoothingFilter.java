@@ -120,12 +120,12 @@ public class SmoothingFilter extends Frame implements ActionListener {
 									cHeight = 0;
 								}
 
-								if (cHeight >= height) {
-									cHeight = height - 1;
-								}
-
 								if (cWidth < 0) {
 									cWidth = 0;
+								}
+
+								if (cHeight >= height) {
+									cHeight = height - 1;
 								}
 
 								if(cWidth >= width) {
