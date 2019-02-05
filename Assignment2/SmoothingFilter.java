@@ -89,8 +89,45 @@ public class SmoothingFilter extends Frame implements ActionListener {
 				source.repaint();
 				break;
 
-			case: "5x5 mean":
-				int inputImage[height][width];
+			case "5x5 mean":
+
+				int inputImage[][] = new int[height][width];
+				int red = 0;
+				int blue = 0;
+				int green = 0;
+
+				for (int i = 0; i < height; i++) {
+					for (int j = 0; j < width; j++) {
+						inputImage[i][j] = input.getRGB(j, i);
+					}
+				}
+
+				for (int u = 0; u < height; u++) {
+					for (int v = 0; v < width; v++) {
+			
+
+						for (int j = 0; j <= 1; j++) {
+                            for (int i = -1; i <= 1; i++) {
+                                if((u + (j) >= -1 && v + (i) >= 0 && u + (j) < width && v + (i) < height)){
+                                    int pixel = inputImage[u + j][v + i];
+                                    int rr = (pixel >> 16) & 0xff, rg = (pixel >> 8) & 0xff, rb = pixel & 0xff;
+                                    red += rr;
+                                    green += rg;
+                                    blue += rb;  
+
+                                }
+                            }
+                        }
+                        
+                        red /= 25; green /= 25; blue /= 25;
+                        int newPixel = 0xff000000|(red<<16)|(green<<8)|blue;
+                        source.image.setRGB(v, u, newPixel);
+
+
+					}
+				}
+
+				source.repaint();
 
 
 				break;
