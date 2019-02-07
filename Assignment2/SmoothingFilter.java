@@ -175,10 +175,9 @@ public class SmoothingFilter extends Frame implements ActionListener {
 							for(int ox = -kernelRadius; ox <= kernelRadius; ox++){
 								int cy = oy + iy;
 								int cx = ox + ix;
-								if(cx < 0){ cx = 0; }
-								if(cy < 0){ cy = 0; }
-								if(cx >= width) { cx = width - 1; }
-								if(cy >= height) { cy = height -1; }
+
+								cx = cx < 0 ? 0 : cx >= width ? (width - 1) : cx;
+								cy = cy < 0 ? 0 : cy >= width ? (width - 1) : cy;
 
 								Color color = new Color(source.image.getRGB(cx, cy));
 
