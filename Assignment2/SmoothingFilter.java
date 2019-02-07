@@ -142,7 +142,9 @@ public class SmoothingFilter extends Frame implements ActionListener {
                             }
                         }
                         
-                        red /= 25; green /= 25; blue /= 25;
+                        red = (int) Math.round(red / 25); 
+                        green = (int) Math.round(green / 25); 
+                        blue = (int) Math.round(blue / 25);
                         int newPixel = (red << 16) | (green << 8) | blue;
 
                         target.image.setRGB(v, u, newPixel);
@@ -181,9 +183,9 @@ public class SmoothingFilter extends Frame implements ActionListener {
 
 								Color color = new Color(source.image.getRGB(cx, cy));
 
-								red += color.getRed() * kernel[oy + kernelRadius][ox + kernelRadius];
-								green += color.getGreen() * kernel[oy + kernelRadius][ox + kernelRadius];
-								blue += color.getBlue() * kernel[oy + kernelRadius][ox + kernelRadius];
+								red = (int) Math.round(red + color.getRed() * kernel[oy + kernelRadius][ox + kernelRadius]);
+								green = (int) Math.round(green + color.getGreen() * kernel[oy + kernelRadius][ox + kernelRadius]);
+								blue = (int) Math.round(blue + color.getBlue() * kernel[oy + kernelRadius][ox + kernelRadius]);
 							}
 						}
 
