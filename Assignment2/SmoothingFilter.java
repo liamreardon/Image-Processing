@@ -155,38 +155,69 @@ public class SmoothingFilter extends Frame implements ActionListener {
 
 				break;
         
-        case "5x5 Gaussian":
-          String inputSigma = texSigma.getText();
-          double sigma = 0;
+	        case "5x5 Gaussian":
+				int kernelSize = 5;
 
-          if(inputSigma.isEmpty()){
-            sigma = 1f;
-          } else{
-            sigma = Double.parseDouble(inputSigma);
-          }
-        
-          int kernelSize = 5;
+				double[][] kernel = getGaussianKernel(kernelSize);
 
-          double[][] kernel = getGaussianKernel(sigma, kernelSize);
-        
-				  break;
+				// iy - y-coordinate of pixel in the image
+				// oy - offset in the x direction
+				// cy - y-coordinate of the current pixel the kernel is referring to
+				for(int iy = 0; iy < height; iy++){
+					for(int ix = 0; ix < width; ix++){
+						red = 0;
+						green = 0;
+						blue = 0;
+						int kernelRadius = kernelSize / 2;
+
+						for(int oy = -kernelRadius; oy <= kernelRadius; oy++){
+							for(int ox = -kernelRadius; ox <= kernelRadius; ox++){
+								int cy = oy + iy;
+								int cx = ox + ix;
+								if(cx < 0){ cx = 0; }
+								if(cy < 0){ cy = 0; }
+								if(cx >= width) { cx = width - 1; }
+								if(cy >= height) { cy = height -1; }
+
+								Color color = new Color(source.image.getRGB(cx, cy));
+
+								red += color.getRed() * kernel[oy + kernelRadius][ox + kernelRadius];
+								green += color.getGreen() * kernel[oy + kernelRadius][ox + kernelRadius];
+								blue += color.getBlue() * kernel[oy + kernelRadius][ox + kernelRadius];
+							}
+						}
+
+						int pixel = (red << 16) | (green << 8) | blue;
+						target.image.setRGB(ix, iy, pixel);
+					}
+				}
+
+				target.repaint();
+				break;
 		}
-		
 	}
 
 
 	/*
 		Function to calculate a normalized gaussian kernel of a given size
 
-		@param	sigma  			the standard deviation for gaussian
 		@param	kernelSize		the side length of the kernel
 
 		@return 				the normalized gaussian kernel
 	*/
-	public double[][] getGaussianKernel(double sigma, int kernelSize){
+	public double[][] getGaussianKernel(int kernelSize){
+		String inputSigma = texSigma.getText();
+		double sigma = 0;
+
+		if(texSigma.getText().isEmpty()){
+			sigma = 1;
+		}else{
+			sigma = Double.parseDouble(texSigma.getText());
+		}
+
 		double[][] kernel = new double[kernelSize][kernelSize];
 
-		double euler = 1f / (2 * Math.PI * sigma * sigma);
+		double euler = 1d / (2 * Math.PI * sigma * sigma);
 		int kernelRadius = kernelSize / 2;
 		double exponent = 0;
 		double total = 0;
@@ -207,8 +238,10 @@ public class SmoothingFilter extends Frame implements ActionListener {
 		for(int y = 0; y < kernel.length; y++){
 			for(int x = 0; x < kernel[0].length; x++){
 				kernel[y][x] /= total;
+				nTotal += kernel[y][x];
 			}
 		}
+
 		return kernel;
 	}
 
