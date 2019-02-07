@@ -67,6 +67,8 @@ public class SmoothingFilter extends Frame implements ActionListener {
 		// example -- add random noise
 
 		String label = ((Button)e.getSource()).getLabel();
+		int kernelSize = 5;
+		int kernelRadius = kernelSize / 2;
 
 		switch (label) {
 
@@ -158,8 +160,6 @@ public class SmoothingFilter extends Frame implements ActionListener {
 				break;
         
 	        case "5x5 Gaussian":
-				int kernelSize = 5;
-
 				double[][] kernel = getGaussianKernel(kernelSize);
 
 				// iy - y-coordinate of pixel in the image
@@ -170,7 +170,6 @@ public class SmoothingFilter extends Frame implements ActionListener {
 						red = 0;
 						green = 0;
 						blue = 0;
-						int kernelRadius = kernelSize / 2;
 
 						for(int oy = -kernelRadius; oy <= kernelRadius; oy++){
 							for(int ox = -kernelRadius; ox <= kernelRadius; ox++){
@@ -190,6 +189,49 @@ public class SmoothingFilter extends Frame implements ActionListener {
 						}
 
 						int pixel = (red << 16) | (green << 8) | blue;
+						target.image.setRGB(ix, iy, pixel);
+					}
+				}
+
+				target.repaint();
+				break;
+
+			case "5x5 median":
+				// Image Loop
+				for(int iy = 0; iy < height; iy++)	{
+					for(int ix = 0; ix < width; ix++){
+						java.util.List<Integer> pixels_r= new ArrayList<Integer>();
+						java.util.List<Integer> pixels_g= new ArrayList<Integer>();
+						java.util.List<Integer> pixels_b= new ArrayList<Integer>();
+
+						// Kernel Loop
+						for(int oy = -kernelRadius; oy <= kernelRadius; oy++){
+							for(int ox = - kernelRadius; ox <= kernelRadius; ox++){
+								int cy = oy + iy;
+								int cx = ox + ix;
+
+								cx = cx < 0 ? 0 : cx >= width ? (width - 1) : cx;
+								cy = cy < 0 ? 0 : cy >= width ? (width - 1) : cy;
+
+								Color color = new Color(source.image.getRGB(cx, cy));
+
+								pixels_r.add(color.getRed());
+								pixels_g.add(color.getGreen());
+								pixels_b.add(color.getBlue());
+							}
+
+						}
+
+						Collections.sort(pixels_r);
+						Collections.sort(pixels_g);
+						Collections.sort(pixels_b);
+
+						red = pixels_r.get(pixels_r.size() / 2);
+						green = pixels_g.get(pixels_g.size() / 2);
+						blue = pixels_b.get(pixels_b.size() / 2);
+
+						int pixel = (red << 16) | (green << 8) | blue;
+
 						target.image.setRGB(ix, iy, pixel);
 					}
 				}
