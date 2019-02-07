@@ -238,7 +238,6 @@ public class SmoothingFilter extends Frame implements ActionListener {
 		for(int y = 0; y < kernel.length; y++){
 			for(int x = 0; x < kernel[0].length; x++){
 				kernel[y][x] /= total;
-				nTotal += kernel[y][x];
 			}
 		}
 
