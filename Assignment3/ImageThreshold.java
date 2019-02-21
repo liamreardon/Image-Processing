@@ -122,18 +122,26 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 			for(int y = 0; y < height; y++){
 				for(int x = 0; x < width; x++){
-					if(baseHist[y][x][0] > threshold){
-						if(isGrayScale){
+					if(isGrayScale){
+						if(baseHist[y][x][0] > threshold){
 							int colour = (255 << 16) | (255 << 8) | 255;
 							target.image.setRGB(x,y, colour);
+						}
+					}else{
+						for(int c = 0; c < numChannels; c++){
+							if(baseHist[y][x][c] > threshold){
+								int colour = (255 << 16) | (255 << 8) | 255;
+								target.image.setRGB(x,y, colour);
+							}
 						}
 					}
 				}
 			}
-
-			target.repaint();
 		}
+		
+		target.repaint();
 	}
+
 	public static void main(String[] args) {
 		new ImageThreshold(args.length==1 ? args[0] : "fingerprint.png");
 	}
