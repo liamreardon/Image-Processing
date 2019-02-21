@@ -18,7 +18,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 	TextField texThres, texOffset;
 	ImageCanvas source, target;
 	PlotCanvas2 plot;
-	Boolean isGrayScale;
+	Boolean isGrayScale = true;
 
 	// Constructor
 	public ImageThreshold(String name) {
@@ -88,6 +88,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 				if((red != green) || (green != blue) || (blue != red)){
 					isGrayScale = false;
 				}
+
 				hist[y][x][0] = red;
 				hist[y][x][1] = green;
 				hist[y][x][2] = blue;
@@ -105,6 +106,8 @@ public class ImageThreshold extends Frame implements ActionListener {
 	}
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
+		int[][][] transformHist = new int[height][width][numChannels];
+
 		// example -- compute the average color for the image
 		if ( ((Button)e.getSource()).getLabel().equals("Manual Selection") ) {
 			int threshold;
@@ -116,6 +119,19 @@ public class ImageThreshold extends Frame implements ActionListener {
 			}
 			plot.clearObjects();
 			plot.addObject(new VerticalBar(Color.BLACK, threshold, 100));
+
+			for(int y = 0; y < height; y++){
+				for(int x = 0; x < width; x++){
+					if(baseHist[y][x][0] > threshold){
+						if(isGrayScale){
+							int colour = (255 << 16) | (255 << 8) | 255;
+							target.image.setRGB(x,y, colour);
+						}
+					}
+				}
+			}
+
+			target.repaint();
 		}
 	}
 	public static void main(String[] args) {
