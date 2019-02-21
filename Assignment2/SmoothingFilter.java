@@ -92,31 +92,20 @@ public class SmoothingFilter extends Frame implements ActionListener {
 				break;
 
 			case "5x5 mean":
-			
-				//int inputImage[][] = new int[height][width];
-
 				int red = 0;
 				int blue = 0;
 				int green = 0;
 
-				// for (int i = 0; i < height; i++) {
-				// 	for (int j = 0; j < width; j++) {
-				// 		inputImage[i][j] = input.getRGB(j, i);
-				// 	}
-				// }
-
 				for (int u = 0; u < height; u++) {
 					for (int v = 0; v < width; v++) {
-			             
+			            red = 0;
+			            green = 0;
+			            blue = 0;
 						for (int j = -2; j <= 2; j++) {
                             for (int i = -2; i <= 2; i++) {
                                 
-
                                 int cHeight = u + j;
                                 int cWidth = v + i;
-
-                                // System.out.println(cHeight);
-                                // System.out.println(cWidth);
 
                                 if(cHeight < 0) {
 									cHeight = 0;
@@ -150,42 +139,56 @@ public class SmoothingFilter extends Frame implements ActionListener {
                         int newPixel = (red << 16) | (green << 8) | blue;
 
                         target.image.setRGB(v, u, newPixel);
-
 					}
 				}
 
 				target.repaint();
 
-
 				break;
         
 	        case "5x5 Gaussian":
-				double[][] kernel = getGaussianKernel(kernelSize);
+				double[] kernel = get1dGaussianKernel(kernelSize);
 
-				// iy - y-coordinate of pixel in the image
-				// oy - offset in the x direction
-				// cy - y-coordinate of the current pixel the kernel is referring to
+				// iy and ix are the current pixel in the image
 				for(int iy = 0; iy < height; iy++){
 					for(int ix = 0; ix < width; ix++){
 						red = 0;
 						green = 0;
 						blue = 0;
 
-						for(int oy = -kernelRadius; oy <= kernelRadius; oy++){
-							for(int ox = -kernelRadius; ox <= kernelRadius; ox++){
-								int cy = oy + iy;
-								int cx = ox + ix;
-								if(cx < 0){ cx = 0; }
-								if(cy < 0){ cy = 0; }
-								if(cx >= width) { cx = width - 1; }
-								if(cy >= height) { cy = height -1; }
+						// cx is the x-coordinate of the current pixel position
+						// that is being used for the convolution
+						for(int offset = -kernelRadius; offset <= kernelRadius; offset++){
+							int cx = offset + ix;
+							cx = cx < 0 ? 0 : cx >= width ? (width - 1) : cx;
+							Color color = new Color(source.image.getRGB(cx, iy));
 
-								Color color = new Color(source.image.getRGB(cx, cy));
+							red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
+							green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
+							blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
+						}
 
-								red = (int) Math.round(red + color.getRed() * kernel[oy + kernelRadius][ox + kernelRadius]);
-								green = (int) Math.round(green + color.getGreen() * kernel[oy + kernelRadius][ox + kernelRadius]);
-								blue = (int) Math.round(blue + color.getBlue() * kernel[oy + kernelRadius][ox + kernelRadius]);
-							}
+						int pixel = (red << 16) | (green << 8) | blue;
+						target.image.setRGB(ix, iy, pixel);
+					}
+				}
+
+				for(int ix = 0; ix < height; ix++){
+					for(int iy = 0; iy < width; iy++){
+						red = 0;
+						green = 0;
+						blue = 0;
+
+						// cy is the y-coordinate of the current pixel position
+						// that is being used for the convolution
+						for(int offset = -kernelRadius; offset <= kernelRadius; offset++){
+							int cy = offset + iy;
+							cy = cy < 0 ? 0 : cy >= width ? (width - 1) : cy;
+							Color color = new Color(source.image.getRGB(ix, cy));
+
+							red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
+							green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
+							blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
 						}
 
 						int pixel = (red << 16) | (green << 8) | blue;
@@ -418,53 +421,43 @@ public class SmoothingFilter extends Frame implements ActionListener {
                 break;
 
 		}
-
-
-
 	}
 
 
 	/*
-		Function to calculate a normalized gaussian kernel of a given size
+		Function to calculate a normalized 1D gaussian kernel of a given size
 
 		@param	kernelSize		the side length of the kernel
 
 		@return 				the normalized gaussian kernel
 	*/
-	public double[][] getGaussianKernel(int kernelSize){
+	public double[] get1dGaussianKernel(int kernelSize){
 		String inputSigma = texSigma.getText();
 		double sigma = 0;
 
 		if(texSigma.getText().isEmpty()){
-			sigma = 1;
+			sigma = 1d;
 		}else{
 			sigma = Double.parseDouble(texSigma.getText());
 		}
 
-		double[][] kernel = new double[kernelSize][kernelSize];
-
-		double euler = 1d / (2 * Math.PI * sigma * sigma);
+		double[] kernel = new double[kernelSize];
+		double constant = 1d / (Math.sqrt(2 * Math.PI) * sigma);
 		int kernelRadius = kernelSize / 2;
-		double exponent = 0;
 		double total = 0;
 
 		// Calculating kernel values and the normalizing factor
-		for(int y = -kernelRadius; y <= kernelRadius; y++){
-			for(int x = -kernelRadius; x <= kernelRadius; x++){
-				exponent = ((y * y) + (x * x)) / (2 * sigma * sigma);
+		for(int x = -kernelRadius; x <= kernelRadius; x++){
+			double exponent = -(x * x) / (2 * sigma * sigma);
+			kernel[x + kernelRadius] = 
+				constant * Math.exp(exponent);
 
-				kernel[y + kernelRadius][x + kernelRadius] = 
-					euler * Math.exp(exponent);
-
-				total += kernel[y + kernelRadius][x + kernelRadius];
-			}
+			total += kernel[x + kernelRadius];
 		}
 
 		// Normalizing the kernel
-		for(int y = 0; y < kernel.length; y++){
-			for(int x = 0; x < kernel[0].length; x++){
-				kernel[y][x] /= total;
-			}
+		for(int x = 0; x < kernel.length; x++){
+			kernel[x] /= total;
 		}
 
 		return kernel;
