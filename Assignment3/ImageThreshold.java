@@ -11,11 +11,15 @@ import javax.imageio.*;
 
 // Main class
 public class ImageThreshold extends Frame implements ActionListener {
+	int[][][] baseHist;
 	BufferedImage input;
 	int width, height;
+	int numChannels = 3;
 	TextField texThres, texOffset;
 	ImageCanvas source, target;
 	PlotCanvas2 plot;
+	Boolean isGrayScale;
+
 	// Constructor
 	public ImageThreshold(String name) {
 		super("Image Histogram");
@@ -65,7 +69,35 @@ public class ImageThreshold extends Frame implements ActionListener {
 		addWindowListener(new ExitListener());
 		setSize(width*2+400, height+100);
 		setVisible(true);
+
+		baseHist = getHistogram();
 	}
+
+
+	public int[][][] getHistogram(){
+		int[][][] hist = new int[height][width][numChannels];
+		int red, green, blue;
+
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				int pixel = input.getRGB(x,y);
+				red = (pixel >> 16) & 0xff;
+				green = (pixel >> 8) & 0xff;
+				blue = (pixel) & 0xff;
+
+				if((red != green) || (green != blue) || (blue != red)){
+					isGrayScale = false;
+				}
+				hist[y][x][0] = red;
+				hist[y][x][1] = green;
+				hist[y][x][2] = blue;
+			}
+		}
+
+		return hist;
+	}
+
+
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
