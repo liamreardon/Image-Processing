@@ -472,6 +472,6 @@ public class SmoothingFilter extends Frame implements ActionListener {
 
 
 	public static void main(String[] args) {
-		new SmoothingFilter(args.length==1 ? args[0] : "baboon.png");
+		new SmoothingFilter(args.length==1 ? args[0] : "signal_hill.png");
 	}
 }
