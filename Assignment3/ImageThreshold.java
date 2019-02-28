@@ -19,6 +19,8 @@ public class ImageThreshold extends Frame implements ActionListener {
 	ImageCanvas source, target;
 	PlotCanvas2 plot;
 	Boolean isGrayScale = true;
+	private static final int WINDOW_SIZE = 7;
+	private static final int DEFAULT_OFFSET = 10;
 
 	private boolean isColorImage;
 	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
@@ -162,6 +164,21 @@ public class ImageThreshold extends Frame implements ActionListener {
 			displayThreshold(thresholdArr);
 			showFilter(thresholdArr);
 		}
+
+		if ( ((Button)e.getSource()).getLabel().equals("Adaptive Mean-C") ) {
+			int c;
+            try {
+                c = Integer.parseInt(texOffset.getText());
+            } catch (Exception ex) {
+                texOffset.setText(DEFAULT_OFFSET + "");
+                c = DEFAULT_OFFSET;
+			}
+
+			plot.clearObjects();
+            adaptiveMeanC(source.image, c);
+            
+            return;
+		}
 		
 	}
 
@@ -259,5 +276,44 @@ public class ImageThreshold extends Frame implements ActionListener {
                 target.getRaster().setPixel(i, j, BLACK);
             }
         }
+	}
+
+	public void adaptiveMeanC(BufferedImage image, int c){
+
+        BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(),
+                BufferedImage.TYPE_INT_RGB);
+
+        int [] threshold = new int[3];
+        for (int i = 0; i < target.image.getWidth(); i++) {
+            for (int j = 0; j < target.image.getHeight(); j++) {
+
+                for (int k = 0; k < 3; k++) {
+                    threshold[k] = Double.valueOf(calcLocalMean(image, i, j, k) - c).intValue();
+                }
+                setNewColor(image, newImage, i, j, threshold);
+            }
+        }
+
+		displayThreshold(threshold);
+        target.resetImage(newImage);
+	}
+	
+	private double calcLocalMean(BufferedImage image, int x, int y, int color){
+        double sum = 0;
+        int count = 0;
+
+        for (int i = -WINDOW_SIZE/2; i <= WINDOW_SIZE/2; i++) {
+            for (int c = -WINDOW_SIZE/2; c <= WINDOW_SIZE/2; c++) {
+                if (isInBounds(image, x + i, y + c)){
+                    sum += image.getRaster().getPixel(x + i, y + c, new int[3])[color];
+                    count++;
+                }
+            }
+        }
+        return sum / count;
+	}
+	
+	private boolean isInBounds(BufferedImage image, int x, int y){
+        return image.getRaster().getBounds().contains(x, y);
     }
 }
