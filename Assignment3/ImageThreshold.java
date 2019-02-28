@@ -11,7 +11,7 @@ import javax.imageio.*;
 
 // Main class
 public class ImageThreshold extends Frame implements ActionListener {
-	int[][][] baseHist;
+	int[][][] sourceMatrix;
 	BufferedImage input;
 	int width, height;
 	int numChannels = 3;
@@ -76,12 +76,13 @@ public class ImageThreshold extends Frame implements ActionListener {
 		setSize(width*2+400, height+100);
 		setVisible(true);
 
-		baseHist = getHistogram();
+		sourceMatrix = getImageMatrix(source.image);
+		isColorImage = Misc.isColorImage(source.image);
 	}
 
 
-	public int[][][] getHistogram(){
-		int[][][] hist = new int[height][width][numChannels];
+	public int[][][] getImageMatrix(BufferedImage image){
+		int[][][] matrix = new int[height][width][numChannels];
 		int red, green, blue;
 
 		for(int y = 0; y < height; y++){
@@ -91,17 +92,17 @@ public class ImageThreshold extends Frame implements ActionListener {
 				green = (pixel >> 8) & 0xff;
 				blue = (pixel) & 0xff;
 
-				if((red != green) || (green != blue) || (blue != red)){
+				if((red != green) || (green != blue)){
 					isGrayScale = false;
 				}
 
-				hist[y][x][0] = red;
-				hist[y][x][1] = green;
-				hist[y][x][2] = blue;
+				matrix[y][x][0] = red;
+				matrix[y][x][1] = green;
+				matrix[y][x][2] = blue;
 			}
 		}
 
-		return hist;
+		return matrix;
 	}
 
 
@@ -129,18 +130,28 @@ public class ImageThreshold extends Frame implements ActionListener {
 			plot.clearObjects();
 			plot.addObject(new VerticalBar(Color.BLACK, threshold, 100));
 
+			int colour;
+
 			for(int y = 0; y < height; y++){
 				for(int x = 0; x < width; x++){
 					if(isGrayScale){
-						if(baseHist[y][x][0] > threshold){
-							int colour = (255 << 16) | (255 << 8) | 255;
-							target.image.setRGB(x,y, colour);
+						if(sourceMatrix[y][x][0] > threshold){
+							colour = (255 << 16) | (255 << 8) | 255;
+							target.image.setRGB(x, y, colour);
+						}
+						else{
+								colour = (0 << 16) | (0 << 8) | 0;
+								target.image.setRGB(x, y, colour);
 						}
 					}else{
 						for(int c = 0; c < numChannels; c++){
-							if(baseHist[y][x][c] > threshold){
-								int colour = (255 << 16) | (255 << 8) | 255;
-								target.image.setRGB(x,y, colour);
+							if(sourceMatrix[y][x][c] > threshold){
+								colour = (255 << 16) | (255 << 8) | 255;
+								target.image.setRGB(x, y, colour);
+							}
+							else{
+								colour = (0 << 16) | (0 << 8) | 0;
+								target.image.setRGB(x, y, colour);
 							}
 						}
 					}
