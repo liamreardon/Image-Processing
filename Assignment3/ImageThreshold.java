@@ -80,43 +80,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 		isColorImage = Misc.isColorImage(source.image);
 	}
 
-
-	public int[][][] get3ChannelImageMatrix(BufferedImage image){
-		int[][][] matrix = new int[height][width][numChannels];
-		int red, green, blue;
-
-		for(int y = 0; y < height; y++){
-			for(int x = 0; x < width; x++){
-				int pixel = input.getRGB(x,y);
-				red = (pixel >> 16) & 0xff;
-				green = (pixel >> 8) & 0xff;
-				blue = (pixel) & 0xff;
-
-				matrix[y][x][0] = red;
-				matrix[y][x][1] = green;
-				matrix[y][x][2] = blue;
-			}
-		}
-
-		return matrix;
-	}
-
-
-	public int[][] get3ChannelHistogram(int [][][] matrix){
-		int[][] hist = new int[256][numChannels];
-
-		for(int channel = 0; channel < numChannels; channel++){
-			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){
-					hist[matrix[y][x][channel]][channel]++;
-				}
-			}
-		}
-
-		return hist;
-	}
-
-
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
