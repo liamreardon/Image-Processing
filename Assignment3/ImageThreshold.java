@@ -11,8 +11,6 @@ import javax.imageio.*;
 
 // Main class
 public class ImageThreshold extends Frame implements ActionListener {
-	int[][][] sourceMatrix;  	// Indices:  x, y, and channel
-	int[][] sourceHistogram;	// Indices: intensity and channel
 	BufferedImage input;
 	int width, height;
 	int numChannels = 3;
@@ -26,8 +24,11 @@ public class ImageThreshold extends Frame implements ActionListener {
 	private boolean isColorImage;
 	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
 
-	private static final int[] BLACK = new int[]{0xff, 0xff, 0xff};
-    private static final int[] WHITE = new int[]{0, 0, 0};
+	// private static final int[] BLACK = new int[]{0xff, 0xff, 0xff};
+    // private static final int[] WHITE = new int[]{0, 0, 0};
+    private static final int BLACK = (0 << 16) | (0 << 8) | 0;
+    private static final int WHITE = (255 << 16) | (255 << 8) | 255;
+
 
 	// Constructor
 	public ImageThreshold(String name) {
@@ -80,46 +81,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 		setVisible(true);
 
 		isColorImage = Misc.isColorImage(source.image);
-		sourceMatrix = get3ChannelImageMatrix(source.image);
-		sourceHistogram = get3ChannelHistogram(sourceMatrix);
 	}
-
-
-	public int[][][] get3ChannelImageMatrix(BufferedImage image){
-		int[][][] matrix = new int[height][width][numChannels];
-		int red, green, blue;
-
-		for(int y = 0; y < height; y++){
-			for(int x = 0; x < width; x++){
-				int pixel = input.getRGB(x,y);
-				red = (pixel >> 16) & 0xff;
-				green = (pixel >> 8) & 0xff;
-				blue = (pixel) & 0xff;
-
-				matrix[y][x][0] = red;
-				matrix[y][x][1] = green;
-				matrix[y][x][2] = blue;
-			}
-		}
-
-		return matrix;
-	}
-
-
-	public int[][] get3ChannelHistogram(int [][][] matrix){
-		int[][] hist = new int[256][numChannels];
-
-		for(int channel = 0; channel < numChannels; channel++){
-			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){
-					hist[matrix[y][x][channel]][channel]++;
-				}
-			}
-		}
-
-		return hist;
-	}
-
 
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
@@ -133,7 +95,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 		int[] thresholdArr = new int[3];
 		thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = DEFAULT_MANUAL_THRESHOLD;
 
-		// example -- compute the average color for the image
 		if ( ((Button)e.getSource()).getLabel().equals("Manual Selection") ) {
 			int threshold;
 			try {
@@ -145,30 +106,34 @@ public class ImageThreshold extends Frame implements ActionListener {
 			plot.clearObjects();
 			plot.addObject(new VerticalBar(Color.BLACK, threshold, 100));
 
-			int colour;
+			int white = (255 << 16) | (255 << 8) | 255;
+			int black = (0 << 16) | (0 << 8) | 0;
 
-			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){
-					if(isColorImage){
-						for(int c = 0; c < numChannels; c++){
-							if(sourceMatrix[y][x][c] > threshold){
-								colour = (255 << 16) | (255 << 8) | 255;
-								target.image.setRGB(x, y, colour);
+			int color = 0;
+			if(isColorImage){
+				for(int c = 0; c < numChannels; c++){
+					int[][] imageMatrix = Misc.getMatrixOfImage(source.image, c);
+					for(int y = 0; y < height; y++){
+						for(int x = 0; x < height; x++){
+							if(imageMatrix[x][y] < threshold){
+								target.image.setRGB(x, y, black);
 							}
 							else{
-								colour = (0 << 16) | (0 << 8) | 0;
-								target.image.setRGB(x, y, colour);
+								target.image.setRGB(x, y, white);
 							}
 						}
 					}
-					else{
-						if(sourceMatrix[y][x][0] > threshold){
-							colour = (255 << 16) | (255 << 8) | 255;
-							target.image.setRGB(x, y, colour);
+				}
+			}
+			else{
+				int[][] imageMatrix = Misc.getMatrixOfImage(source.image, 0);
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						if(imageMatrix[y][x] < threshold){
+							target.image.setRGB(x, y, black);
 						}
 						else{
-							colour = (0 << 16) | (0 << 8) | 0;
-							target.image.setRGB(x, y, colour);
+							target.image.setRGB(x, y, white);
 						}
 					}
 				}
@@ -371,20 +336,21 @@ public class ImageThreshold extends Frame implements ActionListener {
     }
 
 	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
-
+		// int white = (255 << 16) | (255 << 8) | 255;
+		// int black = (0 << 16) | (0 << 8) | 0;
         int[] col = source.getRaster().getPixel(i, j, new int[3]);
-        int[] ncol = new int[3];
+        int ncol = 0;
         if (isColorImage) {
             for (int k = 0; k < 3; k++) {
-                ncol[k] = col[k] < thr[k] ? 0 : 255;
+                ncol = col[k] < thr[k] ? BLACK : WHITE;
+	            target.setRGB(i, j, ncol);
             }
-            target.getRaster().setPixel(i, j, ncol);
 		} 
 		else {
             if (col[0] < thr[0]) {
-                target.getRaster().setPixel(i, j, WHITE);
+                target.setRGB(i, j, BLACK);
             } else {
-                target.getRaster().setPixel(i, j, BLACK);
+                target.setRGB(i, j, WHITE);
             }
         }
 	}
