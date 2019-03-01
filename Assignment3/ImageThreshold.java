@@ -11,8 +11,6 @@ import javax.imageio.*;
 
 // Main class
 public class ImageThreshold extends Frame implements ActionListener {
-	int[][][] sourceMatrix;  	// Indices:  x, y, and channel
-	int[][] sourceHistogram;	// Indices: intensity and channel
 	BufferedImage input;
 	int width, height;
 	int numChannels = 3;
@@ -80,8 +78,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 		setVisible(true);
 
 		isColorImage = Misc.isColorImage(source.image);
-		sourceMatrix = get3ChannelImageMatrix(source.image);
-		sourceHistogram = get3ChannelHistogram(sourceMatrix);
 	}
 
 
@@ -133,7 +129,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 		int[] thresholdArr = new int[3];
 		thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = DEFAULT_MANUAL_THRESHOLD;
 
-		// example -- compute the average color for the image
 		if ( ((Button)e.getSource()).getLabel().equals("Manual Selection") ) {
 			int threshold;
 			try {
@@ -145,30 +140,34 @@ public class ImageThreshold extends Frame implements ActionListener {
 			plot.clearObjects();
 			plot.addObject(new VerticalBar(Color.BLACK, threshold, 100));
 
-			int colour;
+			int white = (255 << 16) | (255 << 8) | 255;
+			int black = (0 << 16) | (0 << 8) | 0;
 
-			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){
-					if(isColorImage){
-						for(int c = 0; c < numChannels; c++){
-							if(sourceMatrix[y][x][c] > threshold){
-								colour = (255 << 16) | (255 << 8) | 255;
-								target.image.setRGB(x, y, colour);
+			int color = 0;
+			if(isColorImage){
+				for(int c = 0; c < numChannels; c++){
+					int[][] imageMatrix = Misc.getMatrixOfImage(source.image, c);
+					for(int y = 0; y < height; y++){
+						for(int x = 0; x < height; x++){
+							if(imageMatrix[x][y] < threshold){
+								target.image.setRGB(x, y, black);
 							}
 							else{
-								colour = (0 << 16) | (0 << 8) | 0;
-								target.image.setRGB(x, y, colour);
+								target.image.setRGB(x, y, white);
 							}
 						}
 					}
-					else{
-						if(sourceMatrix[y][x][0] > threshold){
-							colour = (255 << 16) | (255 << 8) | 255;
-							target.image.setRGB(x, y, colour);
+				}
+			}
+			else{
+				int[][] imageMatrix = Misc.getMatrixOfImage(source.image, 0);
+				for(int y = 0; y < height; y++){
+					for(int x = 0; x < width; x++){
+						if(imageMatrix[y][x] < threshold){
+							target.image.setRGB(x, y, black);
 						}
 						else{
-							colour = (0 << 16) | (0 << 8) | 0;
-							target.image.setRGB(x, y, colour);
+							target.image.setRGB(x, y, white);
 						}
 					}
 				}
