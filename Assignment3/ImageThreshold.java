@@ -24,8 +24,11 @@ public class ImageThreshold extends Frame implements ActionListener {
 	private boolean isColorImage;
 	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
 
-	private static final int[] BLACK = new int[]{0xff, 0xff, 0xff};
-    private static final int[] WHITE = new int[]{0, 0, 0};
+	// private static final int[] BLACK = new int[]{0xff, 0xff, 0xff};
+    // private static final int[] WHITE = new int[]{0, 0, 0};
+    private static final int BLACK = (0 << 16) | (0 << 8) | 0;
+    private static final int WHITE = (255 << 16) | (255 << 8) | 255;
+
 
 	// Constructor
 	public ImageThreshold(String name) {
@@ -333,20 +336,21 @@ public class ImageThreshold extends Frame implements ActionListener {
     }
 
 	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
-
+		// int white = (255 << 16) | (255 << 8) | 255;
+		// int black = (0 << 16) | (0 << 8) | 0;
         int[] col = source.getRaster().getPixel(i, j, new int[3]);
-        int[] ncol = new int[3];
+        int ncol = 0;
         if (isColorImage) {
             for (int k = 0; k < 3; k++) {
-                ncol[k] = col[k] < thr[k] ? 0 : 255;
+                ncol = col[k] < thr[k] ? BLACK : WHITE;
+	            target.setRGB(i, j, ncol);
             }
-            target.getRaster().setPixel(i, j, ncol);
 		} 
 		else {
             if (col[0] < thr[0]) {
-                target.getRaster().setPixel(i, j, WHITE);
+                target.setRGB(i, j, BLACK);
             } else {
-                target.getRaster().setPixel(i, j, BLACK);
+                target.setRGB(i, j, WHITE);
             }
         }
 	}
