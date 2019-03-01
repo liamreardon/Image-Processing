@@ -11,7 +11,8 @@ import javax.imageio.*;
 
 // Main class
 public class ImageThreshold extends Frame implements ActionListener {
-	int[][][] sourceMatrix;
+	int[][][] sourceMatrix;  	// Indices:  x, y, and channel
+	int[][] sourceHistogram;	// Indices: intensity and channel
 	BufferedImage input;
 	int width, height;
 	int numChannels = 3;
@@ -76,12 +77,13 @@ public class ImageThreshold extends Frame implements ActionListener {
 		setSize(width*2+400, height+100);
 		setVisible(true);
 
-		sourceMatrix = getImageMatrix(source.image);
 		isColorImage = Misc.isColorImage(source.image);
+		sourceMatrix = get3ChannelImageMatrix(source.image);
+		sourceHistogram = get3ChannelHistogram(sourceMatrix);
 	}
 
 
-	public int[][][] getImageMatrix(BufferedImage image){
+	public int[][][] get3ChannelImageMatrix(BufferedImage image){
 		int[][][] matrix = new int[height][width][numChannels];
 		int red, green, blue;
 
@@ -92,10 +94,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 				green = (pixel >> 8) & 0xff;
 				blue = (pixel) & 0xff;
 
-				if((red != green) || (green != blue)){
-					isGrayScale = false;
-				}
-
 				matrix[y][x][0] = red;
 				matrix[y][x][1] = green;
 				matrix[y][x][2] = blue;
@@ -103,6 +101,21 @@ public class ImageThreshold extends Frame implements ActionListener {
 		}
 
 		return matrix;
+	}
+
+
+	public int[][] get3ChannelHistogram(int [][][] matrix){
+		int[][] hist = new int[256][numChannels];
+
+		for(int channel = 0; channel < numChannels; channel++){
+			for(int y = 0; y < height; y++){
+				for(int x = 0; x < width; x++){
+					hist[matrix[y][x][channel]][channel]++;
+				}
+			}
+		}
+
+		return hist;
 	}
 
 
@@ -134,16 +147,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 			for(int y = 0; y < height; y++){
 				for(int x = 0; x < width; x++){
-					if(isGrayScale){
-						if(sourceMatrix[y][x][0] > threshold){
-							colour = (255 << 16) | (255 << 8) | 255;
-							target.image.setRGB(x, y, colour);
-						}
-						else{
-								colour = (0 << 16) | (0 << 8) | 0;
-								target.image.setRGB(x, y, colour);
-						}
-					}else{
+					if(isColorImage){
 						for(int c = 0; c < numChannels; c++){
 							if(sourceMatrix[y][x][c] > threshold){
 								colour = (255 << 16) | (255 << 8) | 255;
@@ -153,6 +157,16 @@ public class ImageThreshold extends Frame implements ActionListener {
 								colour = (0 << 16) | (0 << 8) | 0;
 								target.image.setRGB(x, y, colour);
 							}
+						}
+					}
+					else{
+						if(sourceMatrix[y][x][0] > threshold){
+							colour = (255 << 16) | (255 << 8) | 255;
+							target.image.setRGB(x, y, colour);
+						}
+						else{
+							colour = (0 << 16) | (0 << 8) | 0;
+							target.image.setRGB(x, y, colour);
 						}
 					}
 				}
@@ -173,9 +187,23 @@ public class ImageThreshold extends Frame implements ActionListener {
 			displayThreshold(thresholdArr);
 			showFilter(thresholdArr);
 		}
-		
+
+		if ( ((Button)e.getSource()).getLabel().equals("Otsu's Method") ) {
+			if(isColorImage){
+				for(int channel = 0; channel < numChannels; channel++){
+					thresholdArr[channel] = OtsuThreshold(source.image, channel);
+				}
+			}
+			else{
+				thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = OtsuThreshold(source.image,0);
+			}
+
+			displayThreshold(thresholdArr);
+			showFilter(thresholdArr);
+		}
 	}
 
+	
 	public static void main(String[] args) {
 		new ImageThreshold(args.length==1 ? args[0] : "fingerprint.png");
 	}
@@ -238,6 +266,78 @@ public class ImageThreshold extends Frame implements ActionListener {
 		}
 
 		return Double.valueOf(newThreshold).intValue();
+	}
+
+
+	/*
+	Function to calculate the threshold value of a specified color channel using
+	Otsu's Method
+
+	@param image 	The BufferedImage object of the source image
+	@param color 	Integer value representing the color channel to consider
+					red = 0, green = 1, blue = 2
+
+	@return the threshold value
+	*/
+	private int OtsuThreshold(BufferedImage image, int color){
+		int[][] imageMatrix = Misc.getMatrixOfImage(image, color);
+		int[] histogram = Misc.buildHistogram(imageMatrix);
+
+		double weightBackground = 0;
+		double weightForeground = 0;
+		double numerBackground = 0;		//Numerator of the meanBackground term
+		double meanBackground = 0;
+		double meanForeground = 0;
+		double diffOfMeans = 0;
+		double varianceInter = 0;
+		double maxVariance = -Double.MAX_VALUE;
+		int threshold = 0;
+		int numPixels = image.getHeight() * image.getWidth();
+		int sum = sumOfIntensities(histogram);		//Sum of all pixel intensities
+
+		// Iterating through all candidate thresholds
+		for(int t = 0; t < 256; t++){
+			weightBackground += histogram[t];
+			if(weightBackground == 0) continue;
+
+			weightForeground  = numPixels - weightBackground;
+			if(weightForeground == 0) break;
+
+			numerBackground += (double) t * histogram[t];
+			if(t == 0) continue;
+
+			meanBackground = numerBackground / weightBackground;
+			meanForeground = (sum - numerBackground) / weightForeground;
+
+			diffOfMeans = meanForeground - meanBackground;
+
+			varianceInter = weightBackground * weightForeground * diffOfMeans * diffOfMeans;
+
+			if(varianceInter > maxVariance){
+				maxVariance = varianceInter;
+				threshold = t;
+			}
+		}
+
+		return threshold;
+	}
+
+
+	/*
+	Function to calculate the numerator of the mean term from intensity 0 to 255
+	in Otsu's method
+
+	@param histogram 	The histogram of an image
+	@return the sum of the terms in the histogram
+	*/
+	private int sumOfIntensities(int[] histogram){
+		int sum = 0;
+
+		for(int i = 0; i < histogram.length; i++){
+			sum += (i * histogram[i]);
+		}
+
+		return sum;
 	}
 
 	public void showFilter(int[] thr) {
