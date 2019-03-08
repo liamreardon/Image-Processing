@@ -24,8 +24,13 @@ class PlotCanvas2 extends Canvas {
 	// add objects to plot
 	public void addObject(Plotable obj) {
 		objects.add(obj);
+	}
+
+
+	public void updatePlot(){
 		repaint();
 	}
+	
 	public void clearObjects() {
 		objects.clear();
 		repaint();
@@ -81,5 +86,25 @@ class VerticalBar implements Plotable {
 	public void plot(Graphics g, int xoffset, int yoffset) {
 		g.setColor(color);
 		g.drawLine(xoffset+pos, yoffset, xoffset+pos, yoffset-length);
+	}
+}
+
+// Line segment class for plotting the image histogram
+class LineSegment implements Plotable{
+	Color color;
+	int x0, y0;	// Start point of the line segment
+	int x1, y1;	// End point of the line segment
+
+	public LineSegment(Color clr, int x0, int y0, int x1, int y1){
+		this.x0 = x0;
+		this.y0 = y0;
+		this.x1 = x1;
+		this.y1 = y1;
+		this.color = clr;
+	}
+
+	public void plot(Graphics g, int xoffset, int yoffset){
+		g.setColor(color);
+		g.drawLine(xoffset + x0, yoffset + y0, xoffset + x1, yoffset + y1);
 	}
 }
