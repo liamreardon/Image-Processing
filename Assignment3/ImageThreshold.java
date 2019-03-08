@@ -1,5 +1,6 @@
-// Skeletal program for the "Image Threshold" assignment
-// Written by:  Minglun Gong
+// COMP 3301
+// Assignment 3
+// Submitted by: Eric Roy Ell & Liam Reardon
 
 import java.util.*;
 import java.awt.*;
@@ -24,8 +25,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 	private boolean isColorImage;
 	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
 
-	// private static final int[] BLACK = new int[]{0xff, 0xff, 0xff};
-    // private static final int[] WHITE = new int[]{0, 0, 0};
     private static final int BLACK = (0 << 16) | (0 << 8) | 0;
     private static final int WHITE = (255 << 16) | (255 << 8) | 255;
 
@@ -81,6 +80,71 @@ public class ImageThreshold extends Frame implements ActionListener {
 		setVisible(true);
 
 		isColorImage = Misc.isColorImage(source.image);
+		plotHistogram(source.image);
+	}
+
+	// Function to get the highest pixels count across all channels
+	public int getMaxCount(BufferedImage image){
+		int maxCount = -Integer.MAX_VALUE;
+		for(int channel = 0; channel < numChannels; channel++){
+			int[][] imageMatrix = Misc.getMatrixOfImage(image, channel);
+			int[] histogram = Misc.buildHistogram(imageMatrix);
+
+			for(int i = 0; i < histogram.length; i++){
+				if(histogram[i] > maxCount){
+					maxCount = histogram[i];
+				}
+			}
+		}
+		return maxCount;
+	}
+
+	// Function to plot the histogram of an image
+	private void plotHistogram(BufferedImage image){
+		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
+
+		if(isColorImage){
+			int maxCount = getMaxCount(image);
+			double scalingFactor = (double) (200d / maxCount);
+
+			for(int c = 0; c < numChannels; c++){
+				int[][] imageMatrix = Misc.getMatrixOfImage(image, c);
+				int[] histogram = Misc.buildHistogram(imageMatrix);
+
+				LineSegment segment;
+				for(int i = 0; i < histogram.length - 1; i++ ){
+					segment = new LineSegment(colors[c], i, (int) -(histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
+					plot.addObject(segment);
+				}
+			}
+		}
+		else{
+			int[][] imageMatrix = Misc.getMatrixOfImage(image, 0);
+			int[] histogram = Misc.buildHistogram(imageMatrix);
+			double scalingFactor = getScalingFactor(histogram);
+
+			LineSegment segment;
+			for(int i = 0; i < histogram.length - 1; i++){
+				segment = new LineSegment(Color.BLUE, i, (int) (-histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
+				plot.addObject(segment);
+			}
+		}
+
+		plot.updatePlot();
+	}
+
+	public double getScalingFactor(int[] histogram){
+		double y_max = 200;
+		int maxCount = -1;
+
+		for(int i = 0; i < histogram.length; i++){
+			if(histogram[i] > maxCount){
+				maxCount = histogram[i];
+			}
+		}
+
+		return y_max / maxCount;
+
 	}
 
 	class ExitListener extends WindowAdapter {
@@ -103,42 +167,13 @@ public class ImageThreshold extends Frame implements ActionListener {
 				texThres.setText("128");
 				threshold = 128;
 			}
-			plot.clearObjects();
-			plot.addObject(new VerticalBar(Color.BLACK, threshold, 100));
 
-			int white = (255 << 16) | (255 << 8) | 255;
-			int black = (0 << 16) | (0 << 8) | 0;
+			thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = threshold;
 
-			int color = 0;
-			if(isColorImage){
-				for(int c = 0; c < numChannels; c++){
-					int[][] imageMatrix = Misc.getMatrixOfImage(source.image, c);
-					for(int y = 0; y < height; y++){
-						for(int x = 0; x < height; x++){
-							if(imageMatrix[x][y] < threshold){
-								target.image.setRGB(x, y, black);
-							}
-							else{
-								target.image.setRGB(x, y, white);
-							}
-						}
-					}
-				}
-			}
-			else{
-				int[][] imageMatrix = Misc.getMatrixOfImage(source.image, 0);
-				for(int y = 0; y < height; y++){
-					for(int x = 0; x < width; x++){
-						if(imageMatrix[y][x] < threshold){
-							target.image.setRGB(x, y, black);
-						}
-						else{
-							target.image.setRGB(x, y, white);
-						}
-					}
-				}
-			}
-			target.repaint();
+			displayThreshold(thresholdArr);
+			showFilter(thresholdArr);
+			plotHistogram(source.image);
+
 		}
 
 		if ( ((Button)e.getSource()).getLabel().equals("Automatic Selection") ) {
@@ -153,6 +188,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 			displayThreshold(thresholdArr);
 			showFilter(thresholdArr);
+			plotHistogram(source.image);
 		}
 
 		if ( ((Button)e.getSource()).getLabel().equals("Otsu's Method") ) {
@@ -167,6 +203,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 			displayThreshold(thresholdArr);
 			showFilter(thresholdArr);
+			plotHistogram(source.image);
 		}
 
 		if ( ((Button)e.getSource()).getLabel().equals("Adaptive Mean-C") ) {
@@ -180,7 +217,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 			plot.clearObjects();
             adaptiveMeanC(source.image, c);
-            
+            plotHistogram(source.image);
             return;
 		}
 	}
@@ -191,6 +228,8 @@ public class ImageThreshold extends Frame implements ActionListener {
 	}
 
 	// Additional Functions
+
+	//Function to display the vertical lines for threshold values
 	private void displayThreshold(int[] thresholdArr){
 
 		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
@@ -199,12 +238,13 @@ public class ImageThreshold extends Frame implements ActionListener {
 		
         if (isColorImage) {
             for (int i = 0; i < 3; i++) {
-                plot.addObject(new VerticalBar(colors[i], thresholdArr[i], 100));
+                plot.addObject(new VerticalBar(colors[i], thresholdArr[i], 200));
             }
 		} 
 		else {
-            plot.addObject(new VerticalBar(Color.BLACK, thresholdArr[0], 100));
+            plot.addObject(new VerticalBar(Color.BLACK, thresholdArr[0], 200));
         }
+
     }
 
 	public int automaticThreshold(BufferedImage image, int color) {
