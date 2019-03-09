@@ -376,15 +376,13 @@ public class ImageThreshold extends Frame implements ActionListener {
     }
 
 	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
-		// int white = (255 << 16) | (255 << 8) | 255;
-		// int black = (0 << 16) | (0 << 8) | 0;
         int[] col = source.getRaster().getPixel(i, j, new int[3]);
-        int ncol = 0;
+        int[] ncol = new int[3];
         if (isColorImage) {
             for (int k = 0; k < 3; k++) {
-                ncol = col[k] < thr[k] ? BLACK : WHITE;
-	            target.setRGB(i, j, ncol);
+                ncol[k] = col[k] < thr[k] ? 0 : 255;
             }
+            target.getRaster().setPixel(i, j, ncol);
 		} 
 		else {
             if (col[0] < thr[0]) {
