@@ -179,7 +179,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 		if ( ((Button)e.getSource()).getLabel().equals("Automatic Selection") ) {
 			if (isColorImage) {
 				for (int i = 0; i < 3; i++) {
-					thresholdArr[i] = automaticThreshold(source.image, 0);
+					thresholdArr[i] = automaticThreshold(source.image, i);
 				}
 			}
 			else {
@@ -194,11 +194,11 @@ public class ImageThreshold extends Frame implements ActionListener {
 		if ( ((Button)e.getSource()).getLabel().equals("Otsu's Method") ) {
 			if(isColorImage){
 				for(int channel = 0; channel < numChannels; channel++){
-					thresholdArr[channel] = OtsuThreshold(source.image, channel);
+					thresholdArr[channel] = otsuThreshold(source.image, channel);
 				}
 			}
 			else{
-				thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = OtsuThreshold(source.image,0);
+				thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = otsuThreshold(source.image,0);
 			}
 
 			displayThreshold(thresholdArr);
@@ -301,7 +301,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 	@return the threshold value
 	*/
-	private int OtsuThreshold(BufferedImage image, int color){
+	private int otsuThreshold(BufferedImage image, int color){
 		int[][] imageMatrix = Misc.getMatrixOfImage(image, color);
 		int[] histogram = Misc.buildHistogram(imageMatrix);
 
