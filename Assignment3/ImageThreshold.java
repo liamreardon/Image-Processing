@@ -83,75 +83,14 @@ public class ImageThreshold extends Frame implements ActionListener {
 		plotHistogram(source.image);
 	}
 
-	// Function to get the highest pixels count across all channels
-	public int getMaxCount(BufferedImage image){
-		int maxCount = -Integer.MAX_VALUE;
-		for(int channel = 0; channel < numChannels; channel++){
-			int[][] imageMatrix = Misc.getMatrixOfImage(image, channel);
-			int[] histogram = Misc.buildHistogram(imageMatrix);
-
-			for(int i = 0; i < histogram.length; i++){
-				if(histogram[i] > maxCount){
-					maxCount = histogram[i];
-				}
-			}
-		}
-		return maxCount;
-	}
-
-	// Function to plot the histogram of an image
-	private void plotHistogram(BufferedImage image){
-		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
-
-		if(isColorImage){
-			int maxCount = getMaxCount(image);
-			double scalingFactor = (double) (200d / maxCount);
-
-			for(int c = 0; c < numChannels; c++){
-				int[][] imageMatrix = Misc.getMatrixOfImage(image, c);
-				int[] histogram = Misc.buildHistogram(imageMatrix);
-
-				LineSegment segment;
-				for(int i = 0; i < histogram.length - 1; i++ ){
-					segment = new LineSegment(colors[c], i, (int) -(histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
-					plot.addObject(segment);
-				}
-			}
-		}
-		else{
-			int[][] imageMatrix = Misc.getMatrixOfImage(image, 0);
-			int[] histogram = Misc.buildHistogram(imageMatrix);
-			double scalingFactor = getScalingFactor(histogram);
-
-			LineSegment segment;
-			for(int i = 0; i < histogram.length - 1; i++){
-				segment = new LineSegment(Color.BLUE, i, (int) (-histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
-				plot.addObject(segment);
-			}
-		}
-
-		plot.updatePlot();
-	}
-
-	public double getScalingFactor(int[] histogram){
-		double y_max = 200;
-		int maxCount = -1;
-
-		for(int i = 0; i < histogram.length; i++){
-			if(histogram[i] > maxCount){
-				maxCount = histogram[i];
-			}
-		}
-
-		return y_max / maxCount;
-
-	}
 
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
 		}
 	}
+
+
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
 		int[][][] transformHist = new int[height][width][numChannels];
@@ -173,7 +112,6 @@ public class ImageThreshold extends Frame implements ActionListener {
 			displayThreshold(thresholdArr);
 			showFilter(thresholdArr);
 			plotHistogram(source.image);
-
 		}
 
 		if ( ((Button)e.getSource()).getLabel().equals("Automatic Selection") ) {
@@ -229,23 +167,28 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 	// Additional Functions
 
-	//Function to display the vertical lines for threshold values
-	private void displayThreshold(int[] thresholdArr){
+	// THRESHOLDING FUNCTIONS
 
-		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
-		
-		plot.clearObjects();
-		
-        if (isColorImage) {
-            for (int i = 0; i < 3; i++) {
-                plot.addObject(new VerticalBar(colors[i], thresholdArr[i], 200));
+	public void adaptiveMeanC(BufferedImage image, int c){
+
+        BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(),
+                BufferedImage.TYPE_INT_RGB);
+
+        int [] threshold = new int[3];
+        for (int i = 0; i < target.image.getWidth(); i++) {
+            for (int j = 0; j < target.image.getHeight(); j++) {
+
+                for (int k = 0; k < 3; k++) {
+                    threshold[k] = Double.valueOf(calcLocalMean(image, i, j, k) - c).intValue();
+                }
+                setNewColor(image, newImage, i, j, threshold);
             }
-		} 
-		else {
-            plot.addObject(new VerticalBar(Color.BLACK, thresholdArr[0], 200));
         }
 
-    }
+		displayThreshold(threshold);
+        target.resetImage(newImage);
+	}
+
 
 	public int automaticThreshold(BufferedImage image, int color) {
 		int[][] matrix = Misc.getMatrixOfImage(image, color);
@@ -289,6 +232,26 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 		return Double.valueOf(newThreshold).intValue();
 	}
+
+	
+	private double calcLocalMean(BufferedImage image, int x, int y, int color){
+        double sum = 0;
+        int count = 0;
+
+        for (int i = -WINDOW_SIZE/2; i <= WINDOW_SIZE/2; i++) {
+            for (int c = -WINDOW_SIZE/2; c <= WINDOW_SIZE/2; c++) {
+                if (isInBounds(image, x + i, y + c)){
+                    sum += image.getRaster().getPixel(x + i, y + c, new int[3])[color];
+                    count++;
+                }
+            }
+        }
+        return sum / count;
+	}
+
+	private boolean isInBounds(BufferedImage image, int x, int y){
+        return image.getRaster().getBounds().contains(x, y);
+    }
 
 
 	/*
@@ -361,20 +324,103 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 		return sum;
 	}
+	
+    // FUNCTIONS USED TO DRAW ON THE CANVAS
 
-	public void showFilter(int[] thr) {
 
-        BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), source.image.getType());
-
-        for (int i = 0; i < target.image.getWidth(); i++) {
-            for (int j = 0; j < target.image.getHeight(); j++) {
-                setNewColor(source.image, newImage, i, j, thr);
+    // Function to display the vertical lines for threshold values
+	private void displayThreshold(int[] thresholdArr){
+		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
+		
+		plot.clearObjects();
+		
+        if (isColorImage) {
+            for (int i = 0; i < 3; i++) {
+                plot.addObject(new VerticalBar(colors[i], thresholdArr[i], 200));
             }
+		} 
+		else {
+            plot.addObject(new VerticalBar(Color.BLACK, thresholdArr[0], 200));
         }
-
-        target.resetImage(newImage);
     }
 
+
+	// Function to get the highest pixels count across all channels
+	public int getMaxCount(BufferedImage image){
+		int maxCount = -Integer.MAX_VALUE;
+		for(int channel = 0; channel < numChannels; channel++){
+			int[][] imageMatrix = Misc.getMatrixOfImage(image, channel);
+			int[] histogram = Misc.buildHistogram(imageMatrix);
+
+			for(int i = 0; i < histogram.length; i++){
+				if(histogram[i] > maxCount){
+					maxCount = histogram[i];
+				}
+			}
+		}
+		return maxCount;
+	}
+
+
+	// Function to get scaling factor for histogram counts
+	public double getScalingFactor(int[] histogram){
+		double y_max = 200;
+		int maxCount = -1;
+
+		for(int i = 0; i < histogram.length; i++){
+			if(histogram[i] > maxCount){
+				maxCount = histogram[i];
+			}
+		}
+
+		return y_max / maxCount;
+
+	}
+
+
+	// Function to plot the histogram of an image
+	private void plotHistogram(BufferedImage image){
+		Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
+
+		if(isColorImage){
+			int maxCount = getMaxCount(image);
+			double scalingFactor = (double) (200d / maxCount);
+
+			for(int c = 0; c < numChannels; c++){
+				int[][] imageMatrix = Misc.getMatrixOfImage(image, c);
+				int[] histogram = Misc.buildHistogram(imageMatrix);
+
+				LineSegment segment;
+				for(int i = 0; i < histogram.length - 1; i++ ){
+					segment = new LineSegment(colors[c], i, (int) -(histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
+					plot.addObject(segment);
+				}
+			}
+		}
+		else{
+			int[][] imageMatrix = Misc.getMatrixOfImage(image, 0);
+			int[] histogram = Misc.buildHistogram(imageMatrix);
+			double scalingFactor = getScalingFactor(histogram);
+
+			LineSegment segment;
+			for(int i = 0; i < histogram.length - 1; i++){
+				segment = new LineSegment(Color.BLUE, i, (int) (-histogram[i] * scalingFactor), i + 1, (int) (-histogram[i + 1] * scalingFactor));
+				plot.addObject(segment);
+			}
+		}
+
+		plot.updatePlot();
+	}
+
+
+	/*
+	Sets the color of the specified pixel
+	@param source 	the source BufferedImage
+	@param target	the target BufferedImage
+	@param i 		the x coordinate of the pixel
+	@param j 		the y coordinate of the pixel
+	@param thr 		the array of threshold values for each color channel
+	*/
 	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
         int[] col = source.getRaster().getPixel(i, j, new int[3]);
         int[] ncol = new int[3];
@@ -393,42 +439,16 @@ public class ImageThreshold extends Frame implements ActionListener {
         }
 	}
 
-	public void adaptiveMeanC(BufferedImage image, int c){
 
-        BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(),
-                BufferedImage.TYPE_INT_RGB);
+	public void showFilter(int[] thr) {
+        BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), source.image.getType());
 
-        int [] threshold = new int[3];
         for (int i = 0; i < target.image.getWidth(); i++) {
             for (int j = 0; j < target.image.getHeight(); j++) {
-
-                for (int k = 0; k < 3; k++) {
-                    threshold[k] = Double.valueOf(calcLocalMean(image, i, j, k) - c).intValue();
-                }
-                setNewColor(image, newImage, i, j, threshold);
+                setNewColor(source.image, newImage, i, j, thr);
             }
         }
 
-		displayThreshold(threshold);
         target.resetImage(newImage);
-	}
-	
-	private double calcLocalMean(BufferedImage image, int x, int y, int color){
-        double sum = 0;
-        int count = 0;
-
-        for (int i = -WINDOW_SIZE/2; i <= WINDOW_SIZE/2; i++) {
-            for (int c = -WINDOW_SIZE/2; c <= WINDOW_SIZE/2; c++) {
-                if (isInBounds(image, x + i, y + c)){
-                    sum += image.getRaster().getPixel(x + i, y + c, new int[3])[color];
-                    count++;
-                }
-            }
-        }
-        return sum / count;
-	}
-	
-	private boolean isInBounds(BufferedImage image, int x, int y){
-        return image.getRaster().getBounds().contains(x, y);
     }
 }
