@@ -16,6 +16,11 @@ public class HoughTransform extends Frame implements ActionListener {
 	TextField texRad, texThres;
 
 	double deg2rad = Math.PI / 180.0;
+	int xOffset, yOffset;
+	Raster rast;
+	double[] sinCache = new double[360];
+	double[] cosCache = new double[360];
+
 	// Constructor
 	public HoughTransform(String name) {
 		super("Hough Transform");
@@ -59,30 +64,60 @@ public class HoughTransform extends Frame implements ActionListener {
 		addWindowListener(new ExitListener());
 		setSize(diagonal*2+100, Math.max(height,360)+100);
 		setVisible(true);
+
+		xOffset = width / 2;
+		yOffset = height / 2;
+		rast = source.image.getData();
+
+		// Precalculating sin and cos values
+		setTrigCacheValues(sinCache, cosCache);
 	}
+
+
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
 			System.exit(0);
 		}
 	}
+
+
 	// Action listener
 	public void actionPerformed(ActionEvent e) {
 		// perform one of the Hough transforms if the button is clicked.
 		if ( ((Button)e.getSource()).getLabel().equals("Line Transform") ) {
+			int maxRho = -100000;
+			int maxTheta = -100000;
+			int maxCount = 0;
+			// double threshold = Double.parseDouble(texThres) / 100d;
 			int[][] g = new int[360][diagonal];
-			System.out.println("Diagonal " + diagonal);
-			for(int y = 0; y < 1; y++){
+			for(int y = 0; y < height; y++){
 				for(int x = 0; x < width; x++){
-					if(source.image.getData().getSample(x, y, 0) == 0){
+					if(rast.getSample(x, y, 0) == 0){
 						for(int theta = 0; theta < 360; theta++){
-							double rad = theta * deg2rad;
-							int rho = (int) Math.round( ((x - width / 2) * Math.cos(rad)) + ((y - height/2) * Math.sin(rad)) );
-							System.out.println(rho);
+							int rho = (int) (((x - xOffset) * cosCache[theta]) + ((y - yOffset) * sinCache[theta]));
+							rho += (int) diagonal / 2;
+							g[theta][rho]++;
+							if(g[theta][rho] > maxCount){
+								maxRho = rho;
+								maxTheta = theta;
+							}
 						}
 					}
 				}
 			}
+
+			// for(int theta = 0; theta < 360; theta++){
+			// 	for(int rho = 0; rho < diagonal; rho++){
+			// 		if(g[theta][rho] > (int) (maxCount * threshold){
+
+			// 		}
+			// 	}
+			// }
+
 			DisplayTransform(diagonal, 360, g);
+
+
+
 		}
 		else if ( ((Button)e.getSource()).getLabel().equals("Circle Transform") ) {
 			int[][] g = new int[height][width];
@@ -131,6 +166,16 @@ public class HoughTransform extends Frame implements ActionListener {
 
 	public static void main(String[] args) {
 		new HoughTransform(args.length==1 ? args[0] : "HoughCircles3.png");
+	}
+
+	// Populate the sin and cos cache arrays
+	private void setTrigCacheValues(double[] sinArray, double[] cosArray){
+		for(int theta = 0; theta < 360; theta++){
+			double rad = theta * deg2rad;
+
+			sinArray[theta] = Math.sin(rad);
+			cosArray[theta] = Math.cos(rad);
+		}
 	}
 
 	/*
