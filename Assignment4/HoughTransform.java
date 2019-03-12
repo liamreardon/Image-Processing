@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
+import java.util.*;
 
 // Main class
 public class HoughTransform extends Frame implements ActionListener {
@@ -10,6 +11,8 @@ public class HoughTransform extends Frame implements ActionListener {
 	int width, height, diagonal;
 	ImageCanvas source, target;
 	TextField texRad, texThres;
+
+	double deg2rad = Math.PI / 180.0;
 	// Constructor
 	public HoughTransform(String name) {
 		super("Hough Transform");
@@ -22,7 +25,7 @@ public class HoughTransform extends Frame implements ActionListener {
 		}
 		width = input.getWidth();
 		height = input.getHeight();
-		diagonal = (int)Math.sqrt(width * width + height * height);
+		diagonal = (int) Math.sqrt(width * width + height * height);
 		// prepare the panel for two images.
 		Panel main = new Panel();
 		source = new ImageCanvas(input);
@@ -64,7 +67,18 @@ public class HoughTransform extends Frame implements ActionListener {
 		// perform one of the Hough transforms if the button is clicked.
 		if ( ((Button)e.getSource()).getLabel().equals("Line Transform") ) {
 			int[][] g = new int[360][diagonal];
-			// insert your implementation for straight-line here.
+			System.out.println("Diagonal " + diagonal);
+			for(int y = 0; y < 1; y++){
+				for(int x = 0; x < width; x++){
+					if(source.image.getData().getSample(x, y, 0) == 0){
+						for(int theta = 0; theta < 360; theta++){
+							double rad = theta * deg2rad;
+							int rho = (int) Math.round( ((x - width / 2) * Math.cos(rad)) + ((y - height/2) * Math.sin(rad)) );
+							System.out.println(rho);
+						}
+					}
+				}
+			}
 			DisplayTransform(diagonal, 360, g);
 		}
 		else if ( ((Button)e.getSource()).getLabel().equals("Circle Transform") ) {
