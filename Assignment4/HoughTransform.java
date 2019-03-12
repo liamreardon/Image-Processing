@@ -3,6 +3,9 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
+
+import javafx.geometry.Point2D;
+
 import java.util.*;
 
 // Main class
@@ -119,7 +122,33 @@ public class HoughTransform extends Frame implements ActionListener {
 		else if ( ((Button)e.getSource()).getLabel().equals("Circle Transform") ) {
 			int[][] g = new int[height][width];
 			int radius = Integer.parseInt(texRad.getText());
-			// insert your implementation for circle here.
+			for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    if (input.getRGB(x, y) == -1)
+                        continue;
+                    Point2D center = new Point2D(x, y);
+                    selectSector(center, radius, 1, 1, g);
+                    selectSector(center, radius, 1, -1, g);
+                    selectSector(center, radius, -1, 1, g);
+                    selectSector(center, radius, -1, -1, g);
+                }
+            }
+
+            double threshold = Double.parseDouble(texThres.getText()) / 100;
+            int minBound = (int)Math.round(4 * radius * threshold);
+            source.resetBuffer(width, height);
+            source.copyImage(input);
+            Graphics2D modified = source.image.createGraphics();
+            modified.setColor(Color.red);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    if (g[y][x] >= minBound)
+                        modified.drawOval(x - radius, y - radius, 2 * radius, 2 * radius);
+                }
+            }
+            source.repaint();
+
+            enforce(g, height, width, Math.max(0, 255 / minBound));
 			DisplayTransform(width, height, g);
 		}
 	}
@@ -136,7 +165,7 @@ public class HoughTransform extends Frame implements ActionListener {
 	}
 
 	public static void main(String[] args) {
-		new HoughTransform(args.length==1 ? args[0] : "rectangle.png");
+		new HoughTransform(args.length==1 ? args[0] : "HoughCircles3.png");
 	}
 
 	// Populate the sin and cos cache arrays
@@ -149,5 +178,32 @@ public class HoughTransform extends Frame implements ActionListener {
 		}
 	}
 
+	/*
+	* Additional Functions
+	*/
 
+    private void selectSector(Point2D center, int radius, int dx, int dy, int[][] g) {
+        //int curX = (int)center.getX() + dx * radius;
+        for (int i = 0; i <= radius; i++) {
+            int curY = (int)center.getY() + dy * i;
+            int deltaX = (int)Math.round(Math.sqrt(radius * radius - i * i));
+            int curX = (int)center.getX() + dx * deltaX;
+            /*
+            while (center.distance(curX, curY) > radius)
+                curX -= dx;
+            if (Math.abs(center.distance(curX, curY) - radius) >
+                    Math.abs(center.distance(curX + dx, curY) - radius))
+                curX += dx;
+               */
+            if (GeoTools.inField(curX, curY, height, width))
+                g[curY][curX]++;
+        }
+    }
+
+    private void enforce(int[][] g, int h, int w, int multiplier) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++)
+                g[y][x] *= multiplier;
+        }
+    }
 }

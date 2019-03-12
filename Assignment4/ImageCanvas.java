@@ -35,6 +35,13 @@ class ImageCanvas extends Canvas {
 		repaint();
 	}
 
+	// reset image based on the input
+	public void copyImage(BufferedImage input) {
+		Graphics2D g2D = image.createGraphics();
+		g2D.drawImage(input, 0, 0, null);
+		repaint();
+	}
+
         
         	// change the image and redraw the canvas
 	public void resetBuffer(int width, int height) {
