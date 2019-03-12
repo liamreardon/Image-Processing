@@ -106,14 +106,15 @@ public class HoughTransform extends Frame implements ActionListener {
 				}
 			}
 
-			// for(int theta = 0; theta < 360; theta++){
-			// 	for(int rho = 0; rho < diagonal; rho++){
-			// 		if(g[theta][rho] > (int) (maxCount * threshold){
+			double threshold = Double.parseDouble(texThres.getText()) / 100;
+            source.resetBuffer(width, height);
+            source.copyImage(input);
+            Graphics2D modified = source.image.createGraphics();
+            modified.setColor(Color.red);
+            
+            source.repaint();
 
-			// 		}
-			// 	}
-			// }
-
+            enforce(g, 360, diagonal, 10);
 			DisplayTransform(diagonal, 360, g);
 
 
@@ -165,7 +166,7 @@ public class HoughTransform extends Frame implements ActionListener {
 	}
 
 	public static void main(String[] args) {
-		new HoughTransform(args.length==1 ? args[0] : "HoughCircles3.png");
+		new HoughTransform(args.length==1 ? args[0] : "rectangle.png");
 	}
 
 	// Populate the sin and cos cache arrays
