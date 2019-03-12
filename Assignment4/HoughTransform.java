@@ -3,6 +3,9 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
+
+import javafx.geometry.Point2D;
+
 import java.util.*;
 
 // Main class
@@ -103,4 +106,27 @@ public class HoughTransform extends Frame implements ActionListener {
 	public static void main(String[] args) {
 		new HoughTransform(args.length==1 ? args[0] : "rectangle.png");
 	}
+
+	/*
+	* Additional Functions
+	*/
+
+	private void selectSector(Point2D center, int radius, int dx, int dy, int[][] g) {
+		for (int i = 0; i <= radius; i++) {
+			int curY = (int)center.getY() + dy + i;
+			int deltaX = (int)Math.round(Math.sqrt(radius*radius-i*i));
+			int curX = (int)center.getX() + dx * deltaX;
+
+			if (GeoTools.inField(curX, curY, height, width)) {
+				g[curY][curX]++;
+			}
+		}
+	}
+
+	private void enforce(int[][] g, int h, int w, int multiplier) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++)
+                g[y][x] *= multiplier;
+        }
+    }
 }
