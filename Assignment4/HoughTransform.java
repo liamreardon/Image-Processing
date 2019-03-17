@@ -11,15 +11,19 @@ import java.util.*;
 // Main class
 public class HoughTransform extends Frame implements ActionListener {
 	BufferedImage input;
-	int width, height, diagonal;
+	int width, height;
 	ImageCanvas source, target;
 	TextField texRad, texThres;
 
-	double deg2rad = Math.PI / 180.0;
-	int xOffset, yOffset;
+    double DEG_TO_RAD = Math.PI / 180.0;
+    int maxTheta = 360;
+    int minTheta = 0;
+    int thetaRange = maxTheta - minTheta;
+	int xOffset, yOffset, rhoMax, doubledRhoMax;
 	Raster rast;
-	double[] sinCache = new double[360];
-	double[] cosCache = new double[360];
+
+	double[] sinCache = new double[thetaRange];
+	double[] cosCache = new double[thetaRange];
 
 	// Constructor
 	public HoughTransform(String name) {
@@ -33,7 +37,7 @@ public class HoughTransform extends Frame implements ActionListener {
 		}
 		width = input.getWidth();
 		height = input.getHeight();
-		diagonal = (int) Math.sqrt(width * width + height * height);
+		rhoMax = (int) Math.sqrt(width * width + height * height);
 		// prepare the panel for two images.
 		Panel main = new Panel();
 		source = new ImageCanvas(input);
@@ -62,15 +66,17 @@ public class HoughTransform extends Frame implements ActionListener {
 		add("Center", main);
 		add("South", controls);
 		addWindowListener(new ExitListener());
-		setSize(diagonal*2+100, Math.max(height,360)+100);
+		setSize(rhoMax*2+100, Math.max(height, 360)+100);
 		setVisible(true);
 
 		xOffset = width / 2;
 		yOffset = height / 2;
 		rast = source.image.getData();
 
-		// Precalculating sin and cos values
-		setTrigCacheValues(sinCache, cosCache);
+        doubledRhoMax = 2 * rhoMax;
+
+		// Caching sin and cos values
+		setTrigCacheValues(sinCache, cosCache, minTheta, maxTheta);
 	}
 
 
@@ -85,40 +91,46 @@ public class HoughTransform extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		// perform one of the Hough transforms if the button is clicked.
 		if ( ((Button)e.getSource()).getLabel().equals("Line Transform") ) {
-			int maxRho = -100000;
-			int maxTheta = -100000;
-			int maxCount = 0;
-			// double threshold = Double.parseDouble(texThres) / 100d;
-			int[][] g = new int[360][diagonal];
+            int maxCount = Integer.MIN_VALUE;
+            int[][] g = new int[thetaRange][doubledRhoMax];
+
+            // Find edge pixels
 			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){
+				for(int x = 0; x < width; x++){ 
+                    // If the pixel is black, it is an edge pixel
 					if(rast.getSample(x, y, 0) == 0){
-						for(int theta = 0; theta < 360; theta++){
-							int rho = (int) (((x - xOffset) * cosCache[theta]) + ((y - yOffset) * sinCache[theta]));
-							rho += (int) diagonal / 2;
-							g[theta][rho]++;
-							if(g[theta][rho] > maxCount){
-								maxRho = rho;
-								maxTheta = theta;
-							}
-						}
+                        // Update the accumulator
+                        for(int theta = minTheta; theta < maxTheta; theta++){
+                            int rho = (int) Math.round((x * cosCache[theta]) + (y * sinCache[theta]));
+                            // shifting rho values to fit in the accumulator array
+                            rho += rhoMax;
+                            if(rho < 0 || rho > doubledRhoMax) continue;
+                            g[theta][rho]++;
+
+                            if(g[theta][rho] > maxCount){
+                                maxCount = g[theta][rho];
+                            }
+                        }
 					}
 				}
 			}
 
 			double threshold = Double.parseDouble(texThres.getText()) / 100;
+            int minBound = (int) (maxCount - (maxCount * threshold));
             source.resetBuffer(width, height);
             source.copyImage(input);
-            Graphics2D modified = source.image.createGraphics();
-            modified.setColor(Color.red);
-            
+            for(int theta = 0; theta < maxTheta; theta++){
+                for(int rho = 0; rho < doubledRhoMax; rho++){
+                    if(g[theta][rho] > minBound){
+                        HoughLine line = new HoughLine(rho-rhoMax, theta);
+                        line.draw(source.image, Color.RED.getRGB());
+                    }
+                }
+            }
             source.repaint();
 
-            enforce(g, 360, diagonal, 10);
-			DisplayTransform(diagonal, 360, g);
-
-
-
+            enforce(g, 360, doubledRhoMax, 10);
+            DisplayTransform(doubledRhoMax, 360, g);
 		}
 		else if ( ((Button)e.getSource()).getLabel().equals("Circle Transform") ) {
 			int[][] g = new int[height][width];
@@ -153,6 +165,7 @@ public class HoughTransform extends Frame implements ActionListener {
 			DisplayTransform(width, height, g);
 		}
 	}
+
 	// display the spectrum of the transform.
 	public void DisplayTransform(int wid, int hgt, int[][] g) {
 		target.resetBuffer(wid, hgt);
@@ -169,15 +182,6 @@ public class HoughTransform extends Frame implements ActionListener {
 		new HoughTransform(args.length==1 ? args[0] : "rectangle.png");
 	}
 
-	// Populate the sin and cos cache arrays
-	private void setTrigCacheValues(double[] sinArray, double[] cosArray){
-		for(int theta = 0; theta < 360; theta++){
-			double rad = theta * deg2rad;
-
-			sinArray[theta] = Math.sin(rad);
-			cosArray[theta] = Math.cos(rad);
-		}
-	}
 
 	/*
 	* Additional Functions
@@ -205,6 +209,15 @@ public class HoughTransform extends Frame implements ActionListener {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++)
                 g[y][x] *= multiplier;
+        }
+    }
+
+    // Populate the sin and cos cache arrays
+    private void setTrigCacheValues(double[] sinArray, double[] cosArray, int minTheta, int maxTheta){
+        for(int theta = minTheta; theta < maxTheta; theta++){
+            double rad = theta * DEG_TO_RAD;
+            sinArray[theta] = Math.sin(rad);
+            cosArray[theta] = Math.cos(rad);
         }
     }
 }
