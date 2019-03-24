@@ -4,6 +4,7 @@ import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
 import javax.swing.*;
+import java.util.*;
 
 // Main class
 public class CornerDetection extends Frame implements ActionListener {
@@ -13,6 +14,10 @@ public class CornerDetection extends Frame implements ActionListener {
 	int threshold=20;
 	ImageCanvas source, target;
 	CheckboxGroup metrics = new CheckboxGroup();
+
+	int KERNEL_SIZE = 5;
+	double SIGMA = 1;
+
 	// Constructor
 	public CornerDetection(String name) {
 		super("Corner Detection");
@@ -84,7 +89,7 @@ public class CornerDetection extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		// generate Moravec corner detection result
 		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") )
-			derivatives();
+			DoG();
 	}
 	public static void main(String[] args) {
 		new CornerDetection(args.length==1 ? args[0] : "signal_hill.png");
@@ -118,5 +123,78 @@ public class CornerDetection extends Frame implements ActionListener {
 			}
 		}
 		target.repaint();
+	}
+
+	public void DoG() {
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+
+		int[][] convolution = new int[height][width];
+		double[] kernel = get1dKernel(KERNEL_SIZE, 1);
+		int kernelRadius = KERNEL_SIZE / 2;
+		System.out.println(Arrays.toString(kernel));
+
+		// Applying the derivative of gaussian horizontally
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				for(int offset = -kernelRadius; offset < kernelRadius; offset++){
+					int curX = x + offset;
+					curX = (curX < 0 ? 0 : curX >= width ? (width - 1) : curX);
+					Color color = new Color(source.image.getRGB(curX, y));
+					red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
+					green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
+					blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
+				}
+
+				int pixel = (red << 16) | (green << 8) | (blue);
+				target.image.setRGB(x, y, pixel);
+			}
+		}
+
+		// Applying the derivative of gaussiain vertically
+		for(int x = 0; x < width; x++){
+			for(int y = 0; y < height; y++){
+				for(int offset = -kernelRadius; offset < kernelRadius; offset++){
+					int curY = y + offset;
+					curY = (curY < 0 ? 0 : curY >= width ? (width - 1) : curY);
+					Color color = new Color(source.image.getRGB(x, curY));
+					red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
+					green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
+					blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
+				}
+
+				int pixel = (red << 16) | (green << 8) | (blue);
+				target.image.setRGB(x, y, pixel);
+			}
+		}
+
+		target.repaint();
+
+	}
+
+	public double[] get1dKernel(int kernelSize, double sigma) {
+		double[] kernel = new double[kernelSize];
+		int kernelRadius = kernelSize / 2;
+		double constant = 1d / (Math.sqrt(2 * Math.PI) * sigma * sigma * sigma);
+		double total = 0;
+
+		// Calculating kernel values and the normalizing factor
+		for(int x = -kernelRadius; x <= kernelRadius; x++){
+			constant = -((double) x * constant);
+			double exponent = ((double) -(x * x)) / (2 * sigma * sigma);
+			System.out.println(exponent);
+			kernel[x + kernelRadius] =  constant * Math.exp(exponent);
+
+			// This value will be used later to normalize the kernel
+			total += kernel[x + kernelRadius];
+		}
+
+		// Normalizing the kernel
+		for(int x = 0; x < kernel.length; x++){
+			kernel[x] /= total;
+		}
+
+		return kernel;
 	}
 }
