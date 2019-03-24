@@ -82,12 +82,29 @@ public class CornerDetection extends Frame implements ActionListener {
 	}
 	// Action listener for button click events
 	public void actionPerformed(ActionEvent e) {
+
+		// define types of output images
+		ImageCanvas derivatedImage, cornerResponsedImage, thressholdedImage, nonMaxedImage;
+
+		// derivative class
+		DerivativeCalculus derivative = new DerivativeCalculus(width, height, source);
+		derivatedImage = derivative.process();
+
+		// corner response class
+		CornerResponse	cr = new CornerResponse(width, height, source, sensitivity);
+		cr.init(derivative.getValx(), derivative.getValy());
+		cornerResponsedImage = cr.process();
+
 		// generate Moravec corner detection result
 		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") )
 			derivatives();
-	}
+		if (((Button) e.getSource()).getLabel().equals("Corner Response")) {
+			target.image.setData(cornerResponsedImage.image.getData());
+			target.repaint();
+		}
+	}	
 	public static void main(String[] args) {
-		new CornerDetection(args.length==1 ? args[0] : "signal_hill.png");
+		new CornerDetection(args.length==1 ? args[0] : "test.png");
 	}
 
 	// moravec implementation

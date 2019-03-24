@@ -162,7 +162,7 @@ public class ImageThreshold extends Frame implements ActionListener {
 
 	
 	public static void main(String[] args) {
-		new ImageThreshold(args.length==1 ? args[0] : "fingerprint.png");
+		new ImageThreshold(args.length==1 ? args[0] : "signal_hill.png");
 	}
 
 	// Additional Functions
