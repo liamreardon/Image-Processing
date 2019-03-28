@@ -17,6 +17,10 @@ public class CornerDetection extends Frame implements ActionListener {
 
 	int KERNEL_SIZE = 5;
 	double SIGMA = 1;
+	private boolean isColorImage;
+	private static final int BLACK = (0 << 16) | (0 << 8) | 0;
+	private static final int WHITE = (255 << 16) | (255 << 8) | 255;
+	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
 
 	// Constructor
 	public CornerDetection(String name) {
@@ -79,6 +83,7 @@ public class CornerDetection extends Frame implements ActionListener {
 		addWindowListener(new ExitListener());
 		setSize(Math.max(width*2+100,850), height+110);
 		setVisible(true);
+		isColorImage = Misc.isColorImage(source.image);
 	}
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
@@ -89,7 +94,10 @@ public class CornerDetection extends Frame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 
 		// define types of output images
-		ImageCanvas derivatedImage, cornerResponsedImage, thressholdedImage, nonMaxedImage;
+		ImageCanvas derivatedImage, cornerResponsedImage, thresholdedImage, nonMaxedImage;
+
+		int[] thresholdArr = new int[3];
+		thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = DEFAULT_MANUAL_THRESHOLD;
 
 		// derivative class
 		DerivativeCalculus derivative = new DerivativeCalculus(width, height, source);
@@ -100,6 +108,11 @@ public class CornerDetection extends Frame implements ActionListener {
 		cr.init(derivative.getValx(), derivative.getValy());
 		cornerResponsedImage = cr.process();
 
+		// Threshold class
+		ThresholdCalculus tc = new ThresholdCalculus(width, height, threshold);
+		tc.init(cr.getHcr());
+		thresholdedImage = tc.process();
+
 		// generate Moravec corner detection result
 		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") )
 			DoG();
@@ -108,9 +121,22 @@ public class CornerDetection extends Frame implements ActionListener {
 			target.image.setData(cornerResponsedImage.image.getData());
 			target.repaint();
 		}
+		if (((Button) e.getSource()).getLabel().equals("Thresholding")) {
+			if (isColorImage) {
+				for (int i = 0; i < 3; i++) {
+					thresholdArr[i] = automaticThreshold(source.image, i);
+				}
+			}
+			else {
+				thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = automaticThreshold(source.image, 0);
+			}
+
+			showFilter(thresholdArr);
+
+		}
 	}
 	public static void main(String[] args) {
-		new CornerDetection(args.length==1 ? args[0] : "test.png");
+		new CornerDetection(args.length==1 ? args[0] : "signal_hill.png");
 	}
 
 	// moravec implementation
@@ -215,4 +241,79 @@ public class CornerDetection extends Frame implements ActionListener {
 
 		return kernel;
 	}
+
+	public int automaticThreshold(BufferedImage image, int color) {
+		int[][] matrix = Misc.getMatrixOfImage(image, color);
+		int[] histogram = Misc.buildHistogram(matrix);
+
+		double currThreshold = Misc.mean(histogram, 0, histogram.length), newThreshold;
+		double group1, group2;
+		int count1, count2, curr;
+
+		while (true) {
+
+			group1 = 0;
+			group2 = 0;
+			count1 = 0;
+			count2 = 0;
+
+			for (int i = 0; i < image.getWidth(); i++) {
+				for (int j = 0; j < image.getHeight(); j++) {
+					curr = Misc.getChannelFromRGB(image.getRGB(i, j), color);
+					if (curr < currThreshold) {
+						count1++;
+						group1 += curr;
+					}
+					else {
+						count2++;
+						group2 += curr;
+					}
+				}
+			}
+
+			newThreshold = (group1 / count1 + group2 / count2) / 2;
+
+			double comp = Math.abs(newThreshold - currThreshold);
+			if (comp < 1.0) {
+				break;
+			}
+			else {
+				currThreshold = newThreshold;
+			}
+		}
+
+		return Double.valueOf(newThreshold).intValue();
+	}
+
+	public void showFilter(int[] thr) {
+        BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), source.image.getType());
+
+        for (int i = 0; i < target.image.getWidth(); i++) {
+            for (int j = 0; j < target.image.getHeight(); j++) {
+                setNewColor(source.image, newImage, i, j, thr);
+            }
+        }
+
+        target.resetImage(newImage);
+	}
+	
+	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
+        int[] col = source.getRaster().getPixel(i, j, new int[3]);
+        int[] ncol = new int[3];
+        if (isColorImage) {
+            for (int k = 0; k < 3; k++) {
+                ncol[k] = col[k] < thr[k] ? 0 : 255;
+            }
+            target.getRaster().setPixel(i, j, ncol);
+		} 
+		else {
+            if (col[0] < thr[0]) {
+                target.setRGB(i, j, BLACK);
+            } else {
+                target.setRGB(i, j, WHITE);
+            }
+        }
+	}
+
+
 }
