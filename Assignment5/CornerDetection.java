@@ -83,7 +83,7 @@ public class CornerDetection extends Frame implements ActionListener {
 		addWindowListener(new ExitListener());
 		setSize(Math.max(width*2+100,850), height+110);
 		setVisible(true);
-		isColorImage = Misc.isColorImage(source.image);
+		isColorImage = Misc.isColorImage(target.image);
 	}
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
@@ -113,6 +113,10 @@ public class CornerDetection extends Frame implements ActionListener {
 		tc.init(cr.getHcr());
 		thresholdedImage = tc.process();
 
+		NonMaxSupression nmc = new NonMaxSupression(width, height);
+		nmc.init(tc.getHcrt(), derivative.getValx(), derivative.getValy(), cr.getDiffx(), cr.getDiffy());
+		nonMaxedImage = nmc.process();
+
 		// generate Moravec corner detection result
 		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") )
 			DoG();
@@ -122,17 +126,12 @@ public class CornerDetection extends Frame implements ActionListener {
 			target.repaint();
 		}
 		if (((Button) e.getSource()).getLabel().equals("Thresholding")) {
-			if (isColorImage) {
-				for (int i = 0; i < 3; i++) {
-					thresholdArr[i] = automaticThreshold(source.image, i);
-				}
-			}
-			else {
-				thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = automaticThreshold(source.image, 0);
-			}
-
+			thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = threshold;
 			showFilter(thresholdArr);
-
+		}
+		if (((Button) e.getSource()).getLabel().equals("Non-max Suppression")) {
+			target.image.setData(nonMaxedImage.image.getData());
+			target.repaint();
 		}
 	}
 	public static void main(String[] args) {
@@ -242,55 +241,13 @@ public class CornerDetection extends Frame implements ActionListener {
 		return kernel;
 	}
 
-	public int automaticThreshold(BufferedImage image, int color) {
-		int[][] matrix = Misc.getMatrixOfImage(image, color);
-		int[] histogram = Misc.buildHistogram(matrix);
-
-		double currThreshold = Misc.mean(histogram, 0, histogram.length), newThreshold;
-		double group1, group2;
-		int count1, count2, curr;
-
-		while (true) {
-
-			group1 = 0;
-			group2 = 0;
-			count1 = 0;
-			count2 = 0;
-
-			for (int i = 0; i < image.getWidth(); i++) {
-				for (int j = 0; j < image.getHeight(); j++) {
-					curr = Misc.getChannelFromRGB(image.getRGB(i, j), color);
-					if (curr < currThreshold) {
-						count1++;
-						group1 += curr;
-					}
-					else {
-						count2++;
-						group2 += curr;
-					}
-				}
-			}
-
-			newThreshold = (group1 / count1 + group2 / count2) / 2;
-
-			double comp = Math.abs(newThreshold - currThreshold);
-			if (comp < 1.0) {
-				break;
-			}
-			else {
-				currThreshold = newThreshold;
-			}
-		}
-
-		return Double.valueOf(newThreshold).intValue();
-	}
 
 	public void showFilter(int[] thr) {
-        BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), source.image.getType());
+        BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), target.image.getType());
 
         for (int i = 0; i < target.image.getWidth(); i++) {
             for (int j = 0; j < target.image.getHeight(); j++) {
-                setNewColor(source.image, newImage, i, j, thr);
+                setNewColor(target.image, newImage, i, j, thr);
             }
         }
 
