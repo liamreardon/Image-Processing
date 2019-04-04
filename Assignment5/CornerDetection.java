@@ -14,8 +14,18 @@ public class CornerDetection extends Frame implements ActionListener {
 	int threshold=20;
 	ImageCanvas source, target;
 	CheckboxGroup metrics = new CheckboxGroup();
+	int numClicks = 0;
 
-	int KERNEL_SIZE = 5;
+	// Convolutions in the x and y directions
+	int[][] Ix, Iy;
+
+	// Image smoothed by gaussian filter
+	int[][] Smoothed;
+
+	// The values necessary for the structure tensor
+	int[][] Ix2, Iy2, Ixy;
+
+	int KERNEL_SIZE = 3;
 	double SIGMA = 1;
 
 	// Constructor
@@ -79,6 +89,12 @@ public class CornerDetection extends Frame implements ActionListener {
 		addWindowListener(new ExitListener());
 		setSize(Math.max(width*2+100,850), height+110);
 		setVisible(true);
+
+		Ix = new int[height][width];
+		Iy = new int[height][width];
+		Ix2 = new int[height][width];
+		Iy2 = new int[height][width];
+		Ixy = new int[height][width];
 	}
 	class ExitListener extends WindowAdapter {
 		public void windowClosing(WindowEvent e) {
@@ -101,8 +117,18 @@ public class CornerDetection extends Frame implements ActionListener {
 		cornerResponsedImage = cr.process();
 
 		// generate Moravec corner detection result
-		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") )
-			DoG();
+		if ( ((Button)e.getSource()).getLabel().equals("Derivatives") ){
+			if(numClicks == 0){
+				displayPartialDerivative("Ix");
+				System.out.println("Now Displaying Ix");
+				numClicks++;
+			}
+			else if(numClicks == 1){
+				displayPartialDerivative("Iy");
+				System.out.println("Now Displaying Iy");
+				numClicks = 0;
+			}
+		}
     
 		if (((Button) e.getSource()).getLabel().equals("Corner Response")) {
 			target.image.setData(cornerResponsedImage.image.getData());
@@ -110,7 +136,9 @@ public class CornerDetection extends Frame implements ActionListener {
 		}
 	}
 	public static void main(String[] args) {
-		new CornerDetection(args.length==1 ? args[0] : "test.png");
+		CornerDetection cd = new CornerDetection(args.length==1 ? args[0] : "signal_hill.png");
+		cd.derivativeOfGaussian();
+		cd.structureTensorComponents();
 	}
 
 	// moravec implementation
@@ -143,54 +171,99 @@ public class CornerDetection extends Frame implements ActionListener {
 		target.repaint();
 	}
 
-	public void DoG() {
-		int red = 0;
-		int green = 0;
-		int blue = 0;
 
-		int[][] convolution = new int[height][width];
-		double[] kernel = get1dKernel(KERNEL_SIZE, 1);
-		int kernelRadius = KERNEL_SIZE / 2;
-		System.out.println(Arrays.toString(kernel));
+	public void derivativeOfGaussian() {
+		double[] kernel = get1dKernel(KERNEL_SIZE, 1.0);
 
-		// Applying the derivative of gaussian horizontally
+
+		// Convert the image to grayscale
+		int[][] gray = rgb2gray(source.image);
+
+		// Apply the gaussian smoothing filter to the grayscale image
+		GrayscaleGaussianFilter gaussian = new GrayscaleGaussianFilter(gray, KERNEL_SIZE, SIGMA);
+		Smoothed = gaussian.getSmoothedImage();
+
+
+		double[] dKernel = {-0.5, 0, 0.5}; // The kernel use to calculate the derivative
+		int derivRadius = dKernel.length / 2;
+
+		// Applying the derivative kernel horizontally
 		for(int y = 0; y < height; y++){
 			for(int x = 0; x < width; x++){
-				for(int offset = -kernelRadius; offset < kernelRadius; offset++){
+				int color = 0;
+				for(int offset = -derivRadius; offset <= derivRadius; offset++){
 					int curX = x + offset;
-					curX = (curX < 0 ? 0 : curX >= width ? (width - 1) : curX);
-					Color color = new Color(source.image.getRGB(curX, y));
-					red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
-					green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
-					blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
+					curX = curX < 0 ? 0 : curX >= width ? (width - 1) : curX;
+					color += (int) (((Smoothed[y][curX] >> 16) & 0xFF) * dKernel[offset + derivRadius]);
 				}
-
-				int pixel = (red << 16) | (green << 8) | (blue);
-				target.image.setRGB(x, y, pixel);
+				// color = Math.max(-128, Math.min(color, 127)) + 128;
+				Ix[y][x] = color;
 			}
 		}
 
-		// Applying the derivative of gaussiain vertically
-		for(int x = 0; x < width; x++){
-			for(int y = 0; y < height; y++){
-				for(int offset = -kernelRadius; offset < kernelRadius; offset++){
+		// Apply the derivitive kernel vertically
+		for(int x = 0; x < height; x++){
+			for(int y = 0; y < width; y++){
+				int color = 0;
+				for(int offset = -derivRadius; offset <= derivRadius; offset++){
 					int curY = y + offset;
-					curY = (curY < 0 ? 0 : curY >= width ? (width - 1) : curY);
-					Color color = new Color(source.image.getRGB(x, curY));
-					red = (int) Math.round(red + color.getRed() * kernel[offset + kernelRadius]);
-					green = (int) Math.round(green + color.getGreen() * kernel[offset + kernelRadius]);
-					blue = (int) Math.round(blue + color.getBlue() * kernel[offset + kernelRadius]);
+					curY = curY < 0 ? 0 : curY >= width ? (width - 1) : curY;
+					color += (int) (((Smoothed[curY][x] >> 16) & 0xFF) * dKernel[offset + derivRadius]);
 				}
+				// color = Math.max(-128, Math.min(color, 127)) + 128;
+				Iy[y][x] = color;
+			}
+		}
+	}
 
-				int pixel = (red << 16) | (green << 8) | (blue);
+
+	public void structureTensorComponents(){
+		// Calculating the components of the structure tensor
+		int[][] Ix2 = new int[height][width];
+		int[][] Iy2 = new int[height][width];
+		int[][] Ixy = new int[height][width];
+
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){
+				Ix2[y][x] = Ix[y][x] * Ix[y][x];
+				Iy2[y][x] = Iy[y][x] * Iy[y][x];
+				Ixy[y][x] = Ix[y][x] * Iy[y][x];
+			}
+		}
+
+		System.out.println(Ix[200][150]);
+	}
+
+	/*
+		Draws the specified partial derivative to the target image
+		Negative values are set to black
+		Positive values are set to white
+		Zero values are set to gray
+		@param derivative the desired partial derivative to show (Ix or Iy);
+	*/
+	private void displayPartialDerivative(String derivative){
+		int[][] matrix = Ix;
+		if(derivative.equals("Ix")){ matrix = Ix; } 
+		else if(derivative.equals("Iy")){ matrix = Iy; }
+
+		for(int y = 0; y < matrix.length; y++){
+			for(int x = 0; x < matrix[0].length; x++){
+				int color = Math.max(-128, Math.min(matrix[y][x], 127)) + 128;
+				int pixel = (color << 16) | (color << 8) | color;
 				target.image.setRGB(x, y, pixel);
 			}
 		}
 
 		target.repaint();
-
 	}
 
+	/*
+		Returns the 1D kernel of the first derivative of the gaussian
+
+		@param kernelSize the length of the kernel
+		@param sigma the standard deviation of the normal curve
+		@return the 1D gaussian kernel of the first derivative of the gaussian
+	*/
 	public double[] get1dKernel(int kernelSize, double sigma) {
 		double[] kernel = new double[kernelSize];
 		int kernelRadius = kernelSize / 2;
@@ -199,20 +272,42 @@ public class CornerDetection extends Frame implements ActionListener {
 
 		// Calculating kernel values and the normalizing factor
 		for(int x = -kernelRadius; x <= kernelRadius; x++){
-			constant = -((double) x * constant);
+			double temp = -((double) x * constant);
 			double exponent = ((double) -(x * x)) / (2 * sigma * sigma);
-			System.out.println(exponent);
-			kernel[x + kernelRadius] =  constant * Math.exp(exponent);
 
-			// This value will be used later to normalize the kernel
-			total += kernel[x + kernelRadius];
+			kernel[x + kernelRadius] =  temp * Math.exp(exponent);
+			if(kernel[x + kernelRadius] > 0){
+				total -= kernel[x + kernelRadius];
+			}
 		}
 
-		// Normalizing the kernel
-		for(int x = 0; x < kernel.length; x++){
+		for(int x = 0; x < kernelSize; x++){
 			kernel[x] /= total;
 		}
 
 		return kernel;
+	}
+
+
+	/*
+	* Takes a colored BufferedImage as an argument and returns a matrix that 
+	* represents a grayscale image. The first argument of the matrix is the row 
+	* of the image and the second is the column
+	*
+	* @param image The colored BufferedImage to be converted to grayscale
+	* @return int[][] the grayscale image in matrix form
+	*/
+	public int[][] rgb2gray(BufferedImage image){
+		int[][] grayImg = new int[image.getHeight()][image.getWidth()];
+		int[] pixel;
+		for(int y = 0; y < image.getHeight(); y++){
+			for(int x = 0; x < image.getWidth(); x++){
+				Color color = new Color(image.getRGB(x, y));
+				int gray = (color.getRed() + color.getGreen() + color.getBlue()) / 3;
+				grayImg[y][x] = (gray << 16 | gray << 8 | gray);
+			}
+		}
+
+		return grayImg;
 	}
 }
