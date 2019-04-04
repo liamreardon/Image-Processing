@@ -30,7 +30,7 @@ public class CornerDetection extends Frame implements ActionListener {
 	private boolean isColorImage;
 	private static final int BLACK = (0 << 16) | (0 << 8) | 0;
 	private static final int WHITE = (255 << 16) | (255 << 8) | 255;
-	private static final int DEFAULT_MANUAL_THRESHOLD = 128;
+	private static final int DEFAULT_MANUAL_THRESHOLD = 255;
 
 	// Constructor
 	public CornerDetection(String name) {
@@ -113,7 +113,7 @@ public class CornerDetection extends Frame implements ActionListener {
 		// define types of output images
 		ImageCanvas derivatedImage, cornerResponsedImage, thresholdedImage, nonMaxedImage;
 
-		int[] thresholdArr = new int[3];
+		double[] thresholdArr = new double[3];
 		thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = DEFAULT_MANUAL_THRESHOLD;
 
 		// derivative class
@@ -153,8 +153,13 @@ public class CornerDetection extends Frame implements ActionListener {
 			target.repaint();
 		}
 		if (((Button) e.getSource()).getLabel().equals("Thresholding")) {
-			thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = threshold;
+
+			double threshOffset = 1 * Math.pow(10,(threshold/10));
+	
+			thresholdArr[0] = thresholdArr[1] = thresholdArr[2] = threshOffset;
+
 			showFilter(thresholdArr);
+
 		}
 		if (((Button) e.getSource()).getLabel().equals("Non-max Suppression")) {
 			target.image.setData(nonMaxedImage.image.getData());
@@ -336,51 +341,8 @@ public class CornerDetection extends Frame implements ActionListener {
 		return grayImg;
 	}
   
-  
-	public int automaticThreshold(BufferedImage image, int color) {
-		int[][] matrix = Misc.getMatrixOfImage(image, color);
-		int[] histogram = Misc.buildHistogram(matrix);
 
-		double currThreshold = Misc.mean(histogram, 0, histogram.length), newThreshold;
-		double group1, group2;
-		int count1, count2, curr;
-
-		while (true) {
-
-			group1 = 0;
-			group2 = 0;
-			count1 = 0;
-			count2 = 0;
-
-			for (int i = 0; i < image.getWidth(); i++) {
-				for (int j = 0; j < image.getHeight(); j++) {
-					curr = Misc.getChannelFromRGB(image.getRGB(i, j), color);
-					if (curr < currThreshold) {
-						count1++;
-						group1 += curr;
-					}
-					else {
-						count2++;
-						group2 += curr;
-					}
-				}
-			}
-
-			newThreshold = (group1 / count1 + group2 / count2) / 2;
-
-			double comp = Math.abs(newThreshold - currThreshold);
-			if (comp < 1.0) {
-				break;
-			}
-			else {
-				currThreshold = newThreshold;
-			}
-		}
-
-		return Double.valueOf(newThreshold).intValue();
-	}
-
-	public void showFilter(int[] thr) {
+	public void showFilter(double[] thr) {
         BufferedImage newImage = new BufferedImage(target.image.getWidth(), target.image.getHeight(), target.image.getType());
 
         for (int i = 0; i < target.image.getWidth(); i++) {
@@ -392,7 +354,7 @@ public class CornerDetection extends Frame implements ActionListener {
         target.resetImage(newImage);
 	}
 	
-	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, int[] thr){
+	private void setNewColor(BufferedImage source, BufferedImage target, int i, int j, double[] thr){
         int[] col = source.getRaster().getPixel(i, j, new int[3]);
         int[] ncol = new int[3];
         if (isColorImage) {
